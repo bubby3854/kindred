@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { slotsForPlan, type Plan } from "@/lib/plans";
 import { listByOwner, type ServiceStatus } from "@/lib/repositories/services";
 import { findByUserId as findSubscriptionByUserId } from "@/lib/repositories/subscriptions";
+import { findById as findProfileById } from "@/lib/repositories/profiles";
 import { computeSlotStatus } from "@/lib/use-cases/slot-status";
 
 export const metadata = { title: "내 페이지 · kindred" };
@@ -20,6 +21,9 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const profile = await findProfileById(supabase, user.id);
+  if (!profile?.display_name) redirect("/onboarding?next=/me");
 
   const [services, subscription] = await Promise.all([
     listByOwner(supabase, user.id),

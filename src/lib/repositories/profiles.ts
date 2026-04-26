@@ -18,3 +18,15 @@ export async function findById(
     .maybeSingle();
   return (data as ProfileSummary | null) ?? null;
 }
+
+export async function updateDisplayName(
+  supabase: SupabaseClient,
+  id: string,
+  displayName: string,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ display_name: displayName })
+    .eq("id", id);
+  return !error;
+}

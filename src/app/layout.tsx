@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { findById as findProfileById } from "@/lib/repositories/profiles";
 import { signOutAction } from "./auth-actions";
 import "./globals.css";
 
@@ -35,13 +36,14 @@ export default async function RootLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
+  const profile = user ? await findProfileById(supabase, user.id) : null;
+
   const displayName =
-    (user?.user_metadata?.full_name as string | undefined) ??
-    (user?.user_metadata?.name as string | undefined) ??
-    user?.email ??
-    null;
+    profile?.display_name ?? user?.email ?? null;
   const avatarUrl =
-    (user?.user_metadata?.avatar_url as string | undefined) ?? null;
+    profile?.avatar_url ??
+    (user?.user_metadata?.avatar_url as string | undefined) ??
+    null;
   const initial = (displayName ?? "?").trim().charAt(0).toUpperCase();
 
   return (
