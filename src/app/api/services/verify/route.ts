@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { verifyOwnership } from "@/lib/verify";
+import { verifyServiceForOwner } from "@/lib/use-cases/verify-service";
 
 const BodySchema = z.object({
   serviceId: z.string().uuid(),
@@ -20,43 +20,24 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { data: service, error } = await supabase
-    .from("services")
-    .select("id, owner_id, url, verify_token, status")
-    .eq("id", parsed.data.serviceId)
-    .single();
+  const result = await verifyServiceForOwner(supabase, {
+    serviceId: parsed.data.serviceId,
+    userId: user.id,
+  });
 
-  if (error || !service) {
+  if (result.ok) return NextResponse.json({ ok: true });
+  if (result.status === "not_found")
     return NextResponse.json({ error: "not_found" }, { status: 404 });
-  }
-  if (service.owner_id !== user.id) {
+  if (result.status === "forbidden")
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  }
-
-  const result = await verifyOwnership(service.url, service.verify_token);
-  const now = new Date().toISOString();
-
-  if (!result.ok) {
-    await supabase
-      .from("services")
-      .update({ last_verified_at: now })
-      .eq("id", service.id);
-    return NextResponse.json({ ok: false, reason: result.reason, detail: "detail" in result ? result.detail : undefined });
-  }
-
-  const nextStatus = service.status === "DRAFT" || service.status === "PENDING_VERIFY"
-    ? "PUBLISHED"
-    : service.status;
-
-  await supabase
-    .from("services")
-    .update({
-      verified_at: now,
-      last_verified_at: now,
-      status: nextStatus,
-      published_at: nextStatus === "PUBLISHED" ? now : null,
-    })
-    .eq("id", service.id);
-
-  return NextResponse.json({ ok: true });
+  if (result.status === "slot_full")
+    return NextResponse.json(
+      { error: "slot_full", plan: result.plan, slots: result.slots },
+      { status: 409 },
+    );
+  return NextResponse.json({
+    ok: false,
+    reason: result.reason.reason,
+    detail: "detail" in result.reason ? result.reason.detail : undefined,
+  });
 }

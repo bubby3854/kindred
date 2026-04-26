@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Instrument_Serif } from "next/font/google";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { signOutAction } from "./auth-actions";
 import "./globals.css";
 
 const inter = Inter({
@@ -23,11 +25,25 @@ export const metadata: Metadata = {
     "메이커가 직접 만든 웹앱을 소유권 인증과 함께 소개하는 큐레이티드 디렉토리.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const displayName =
+    (user?.user_metadata?.full_name as string | undefined) ??
+    (user?.user_metadata?.name as string | undefined) ??
+    user?.email ??
+    null;
+  const avatarUrl =
+    (user?.user_metadata?.avatar_url as string | undefined) ?? null;
+  const initial = (displayName ?? "?").trim().charAt(0).toUpperCase();
+
   return (
     <html
       lang="ko"
@@ -61,12 +77,51 @@ export default function RootLayout({
               >
                 내 페이지
               </Link>
-              <Link
-                href="/login"
-                className="cursor-pointer inline-flex items-center rounded-full bg-[color:var(--foreground)] text-[color:var(--background)] px-4 py-2 font-medium hover:opacity-90 transition-opacity"
-              >
-                로그인
-              </Link>
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/me"
+                    aria-label={displayName ?? "내 계정"}
+                    className="flex items-center gap-2 group"
+                  >
+                    {avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={avatarUrl}
+                        alt=""
+                        width={28}
+                        height={28}
+                        className="h-7 w-7 rounded-full border border-[color:var(--border)] object-cover"
+                      />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="h-7 w-7 rounded-full border border-[color:var(--border)] bg-[color:var(--card)] flex items-center justify-center text-xs font-medium"
+                      >
+                        {initial}
+                      </span>
+                    )}
+                    <span className="hidden sm:inline text-[color:var(--muted)] group-hover:text-[color:var(--foreground)] transition-colors max-w-[10rem] truncate">
+                      {displayName}
+                    </span>
+                  </Link>
+                  <form action={signOutAction}>
+                    <button
+                      type="submit"
+                      className="cursor-pointer text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+                    >
+                      로그아웃
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="cursor-pointer inline-flex items-center rounded-full bg-[color:var(--foreground)] text-[color:var(--background)] px-4 py-2 font-medium hover:opacity-90 transition-opacity"
+                >
+                  로그인
+                </Link>
+              )}
             </div>
           </nav>
         </header>

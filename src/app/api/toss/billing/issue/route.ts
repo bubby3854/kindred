@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { upsertOnIssue as upsertSubscriptionOnIssue } from "@/lib/repositories/subscriptions";
+import { autoRestoreHiddenUpToLimit } from "@/lib/use-cases/restore-service";
 import {
   PLAN_AMOUNT_KRW,
   chargeBillingKey,
@@ -70,20 +72,17 @@ export async function POST(request: NextRequest) {
   const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   const admin = createAdminClient();
-  await admin
-    .from("subscriptions")
-    .upsert(
-      {
-        user_id: user.id,
-        toss_customer_key: customerKey,
-        toss_billing_key: issued.billingKey,
-        plan,
-        status: "ACTIVE",
-        current_period_end: periodEnd.toISOString(),
-        next_charge_at: periodEnd.toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
+  await upsertSubscriptionOnIssue(admin, {
+    userId: user.id,
+    customerKey,
+    billingKey: issued.billingKey,
+    plan,
+    periodEndIso: periodEnd.toISOString(),
+  });
 
-  return NextResponse.json({ ok: true });
+  // After upgrading, bring back any services that were hidden during a prior
+  // downgrade — fill the new slot capacity newest-first.
+  const restored = await autoRestoreHiddenUpToLimit(admin, user.id);
+
+  return NextResponse.json({ ok: true, restored: restored.restored });
 }

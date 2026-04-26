@@ -1,5 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  downgradeToFree,
+  findByCustomerKey as findSubscriptionByCustomerKey,
+  updateByUserId as updateSubscriptionByUserId,
+} from "@/lib/repositories/subscriptions";
+import {
+  listActiveByOwnerNewestFirst,
+  setStatusByIds,
+} from "@/lib/repositories/services";
 import { mapTossStatusToInternal, verifyTossSignature } from "@/lib/toss";
 
 // Toss Payments webhook endpoint. Configure in the Toss merchant dashboard
@@ -39,11 +48,7 @@ async function handlePaymentStatusChanged(payment: TossPayment) {
   const status = mapTossStatusToInternal(payment.status);
 
   const admin = createAdminClient();
-  const { data: sub } = await admin
-    .from("subscriptions")
-    .select("user_id, plan")
-    .eq("toss_customer_key", customerKey)
-    .maybeSingle();
+  const sub = await findSubscriptionByCustomerKey(admin, customerKey);
   if (!sub) return;
 
   const updates: Record<string, unknown> = { status };
@@ -56,31 +61,21 @@ async function handlePaymentStatusChanged(payment: TossPayment) {
     updates.next_charge_at = periodEnd;
   }
 
-  await admin.from("subscriptions").update(updates).eq("user_id", sub.user_id);
+  await updateSubscriptionByUserId(admin, sub.user_id, updates);
 
   // If subscription effectively canceled, hide excess services beyond Free slot (1).
   if (status === "CANCELED") {
-    await admin
-      .from("subscriptions")
-      .update({ plan: "FREE", toss_billing_key: null, next_charge_at: null })
-      .eq("user_id", sub.user_id);
+    await downgradeToFree(admin, sub.user_id);
     await hideExcessServices(sub.user_id, 1);
   }
 }
 
 async function hideExcessServices(userId: string, keep: number) {
   const admin = createAdminClient();
-  const { data: services } = await admin
-    .from("services")
-    .select("id")
-    .eq("owner_id", userId)
-    .in("status", ["PUBLISHED", "PENDING_VERIFY"])
-    .order("updated_at", { ascending: false });
-
-  if (!services || services.length <= keep) return;
+  const services = await listActiveByOwnerNewestFirst(admin, userId);
+  if (services.length <= keep) return;
   const toHide = services.slice(keep).map((s) => s.id);
-  if (toHide.length === 0) return;
-  await admin.from("services").update({ status: "HIDDEN" }).in("id", toHide);
+  await setStatusByIds(admin, toHide, "HIDDEN");
 }
 
 type TossWebhookEvent = {

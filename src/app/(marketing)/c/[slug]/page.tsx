@@ -1,0 +1,89 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { findBySlug as findCategoryBySlug } from "@/lib/repositories/categories";
+import { listPublishedByCategorySlug } from "@/lib/repositories/services";
+import { ServiceCardLink } from "@/components/service-card-link";
+
+export const revalidate = 60;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const category = await findCategoryBySlug(supabase, slug);
+  if (!category) return { title: "찾을 수 없음 · kindred" };
+  return {
+    title: `${category.name} · kindred`,
+    description: category.description ?? undefined,
+  };
+}
+
+export default async function CategoryPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const supabase = await createClient();
+  const category = await findCategoryBySlug(supabase, slug);
+  if (!category) notFound();
+
+  const items = await listPublishedByCategorySlug(supabase, slug, { limit: 60 });
+
+  return (
+    <div className="mx-auto max-w-6xl px-6 pt-16 pb-24 flex flex-col gap-12">
+      <header className="flex flex-col gap-3 max-w-3xl">
+        <Link
+          href="/"
+          className="text-xs uppercase tracking-[0.18em] text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors w-fit"
+        >
+          ← 모든 카테고리
+        </Link>
+        <h1 className="font-serif text-5xl sm:text-6xl leading-[1.05] tracking-tight">
+          {category.name}.
+        </h1>
+        {category.description && (
+          <p className="text-lg text-[color:var(--muted)] leading-relaxed">
+            {category.description}
+          </p>
+        )}
+      </header>
+
+      <section className="flex flex-col gap-6">
+        <div className="flex items-baseline justify-between border-b border-[color:var(--border)] pb-4">
+          <h2 className="font-serif text-2xl">등록된 서비스</h2>
+          <span className="text-sm text-[color:var(--muted)]">
+            {items.length > 0 ? `총 ${items.length}개` : "아직 없음"}
+          </span>
+        </div>
+        {items.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-[color:var(--border)] px-8 py-16 text-center">
+            <p className="font-serif text-2xl mb-2">아직 비어 있어요.</p>
+            <p className="text-sm text-[color:var(--muted)]">
+              이 카테고리의 첫 자리를 잡아보세요.{" "}
+              <Link
+                href="/me/services/new"
+                className="underline underline-offset-4 text-[color:var(--accent)] hover:opacity-80"
+              >
+                서비스 등록
+              </Link>
+            </p>
+          </div>
+        ) : (
+          <ul className="grid gap-x-8 gap-y-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((s) => (
+              <li key={s.id}>
+                <ServiceCardLink service={s} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+

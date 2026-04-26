@@ -2,15 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { slotsForPlan, type Plan } from "@/lib/plans";
+import { listByOwner, type ServiceStatus } from "@/lib/repositories/services";
+import { findByUserId as findSubscriptionByUserId } from "@/lib/repositories/subscriptions";
+import { computeSlotStatus } from "@/lib/use-cases/slot-status";
 
 export const metadata = { title: "내 페이지 · kindred" };
-
-type ServiceStatus =
-  | "DRAFT"
-  | "PENDING_VERIFY"
-  | "PUBLISHED"
-  | "HIDDEN"
-  | "REJECTED";
 
 const PLAN_LABEL: Record<Plan, string> = {
   FREE: "Free",
@@ -25,25 +21,15 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: services }, { data: subscription }] = await Promise.all([
-    supabase
-      .from("services")
-      .select("id, title, status, url, updated_at")
-      .eq("owner_id", user.id)
-      .order("updated_at", { ascending: false }),
-    supabase
-      .from("subscriptions")
-      .select("plan, status, current_period_end")
-      .eq("user_id", user.id)
-      .maybeSingle(),
+  const [services, subscription] = await Promise.all([
+    listByOwner(supabase, user.id),
+    findSubscriptionByUserId(supabase, user.id),
   ]);
 
   const plan = (subscription?.plan ?? "FREE") as Plan;
-  const slots = slotsForPlan(plan);
-  const activeCount = (services ?? []).filter(
-    (s) => s.status === "PUBLISHED" || s.status === "PENDING_VERIFY",
-  ).length;
+  const { slots, activeCount } = computeSlotStatus(services, plan);
   const usedRatio = Math.min(activeCount / slots, 1);
+  const hiddenCount = services.filter((s) => s.status === "HIDDEN").length;
 
   return (
     <div className="mx-auto max-w-4xl px-6 pt-16 pb-24 flex flex-col gap-12">
@@ -85,21 +71,48 @@ export default async function DashboardPage() {
             style={{ width: `${usedRatio * 100}%` }}
           />
         </div>
-        {plan === "FREE" && (
-          <div className="flex items-center justify-between text-sm pt-1 flex-wrap gap-2">
-            <span className="text-[color:var(--muted)]">
-              더 많이 등록하시려면 Pro({slotsForPlan("PRO")}개 슬롯)로
-              업그레이드하세요.
-            </span>
+        {(() => {
+          const nextPlan: Plan | null =
+            plan === "FREE" ? "PRO" : plan === "PRO" ? "BUSINESS" : null;
+          // FREE: 항상 권유. PRO: 슬롯 가득 찼을 때만 권유. BUSINESS: 권유 없음.
+          const showNudge =
+            nextPlan !== null && (plan === "FREE" || activeCount >= slots);
+          if (!showNudge) return null;
+          return (
+            <div className="flex items-center justify-between text-sm pt-1 flex-wrap gap-2">
+              <span className="text-[color:var(--muted)]">
+                더 많이 등록하시려면 {PLAN_LABEL[nextPlan!]}(
+                {slotsForPlan(nextPlan!)}개 슬롯)로 업그레이드하세요.
+              </span>
+              <Link
+                href="/me/subscription"
+                className="cursor-pointer underline underline-offset-4 text-[color:var(--accent)] hover:opacity-80"
+              >
+                플랜 보기
+              </Link>
+            </div>
+          );
+        })()}
+      </section>
+
+      {hiddenCount > 0 && (
+        <div className="rounded-lg border-l-2 border-[color:var(--warning)] bg-[color:var(--card)] px-5 py-4 text-sm">
+          <p className="font-medium mb-1 text-[color:var(--foreground)]">
+            숨겨진 서비스 {hiddenCount}개
+          </p>
+          <p className="text-[color:var(--muted)] leading-relaxed">
+            구독 취소 또는 슬롯 초과로 비공개 상태예요. 슬롯에 여유가 있으면
+            개별 편집에서 다시 공개할 수 있고,{" "}
             <Link
               href="/me/subscription"
-              className="cursor-pointer underline underline-offset-4 text-[color:var(--accent)] hover:opacity-80"
+              className="underline underline-offset-4 text-[color:var(--accent)] hover:opacity-80"
             >
-              플랜 보기
-            </Link>
-          </div>
-        )}
-      </section>
+              플랜을 올리면
+            </Link>{" "}
+            자동으로 복원돼요.
+          </p>
+        </div>
+      )}
 
       <section className="flex flex-col gap-4">
         <div className="flex items-baseline justify-between border-b border-[color:var(--border)] pb-4">
@@ -121,7 +134,7 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        {(services ?? []).length === 0 ? (
+        {services.length === 0 ? (
           <div className="rounded-lg border border-dashed border-[color:var(--border)] px-8 py-12 text-center">
             <p className="font-serif text-xl mb-2">아직 등록한 서비스가 없어요.</p>
             <p className="text-sm text-[color:var(--muted)]">
@@ -130,7 +143,7 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <ul className="flex flex-col divide-y divide-[color:var(--border)]">
-            {services!.map((s) => (
+            {services.map((s) => (
               <li
                 key={s.id}
                 className="py-4 flex items-center justify-between gap-4"
@@ -142,12 +155,12 @@ export default async function DashboardPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">
-                  <StatusBadge status={s.status as ServiceStatus} />
+                  <StatusBadge status={s.status} />
                   <Link
                     href={`/me/services/${s.id}`}
                     className="cursor-pointer text-sm underline underline-offset-4 hover:text-[color:var(--accent)] transition-colors"
                   >
-                    수정
+                    편집
                   </Link>
                 </div>
               </li>
@@ -180,9 +193,9 @@ function StatusBadge({ status }: { status: ServiceStatus }) {
       text: "text-[color:var(--success)]",
     },
     HIDDEN: {
-      label: "숨김",
-      dot: "bg-[color:var(--muted)]",
-      text: "text-[color:var(--muted)]",
+      label: "숨김 (구독)",
+      dot: "bg-[color:var(--warning)]",
+      text: "text-[color:var(--warning)]",
     },
     REJECTED: {
       label: "반려",

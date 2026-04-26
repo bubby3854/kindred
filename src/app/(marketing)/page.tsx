@@ -1,16 +1,11 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-
-export const revalidate = 60;
-
-type ServiceCard = {
-  id: string;
-  title: string;
-  tagline: string | null;
-  url: string;
-  thumbnail_url: string | null;
-  categories: { slug: string; name: string } | null;
-};
+import { listActive as listActiveCategories, type CategorySummary } from "@/lib/repositories/categories";
+import {
+  listPublishedWithCategory,
+  type PublishedServiceCard,
+} from "@/lib/repositories/services";
+import { ServiceCardLink } from "@/components/service-card-link";
 
 export default async function HomePage() {
   const envReady = Boolean(
@@ -18,26 +13,26 @@ export default async function HomePage() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
 
-  let items: ServiceCard[] = [];
-  let categories: { slug: string; name: string }[] = [];
+  let items: PublishedServiceCard[] = [];
+  let categories: CategorySummary[] = [];
+  let isLoggedIn = false;
 
   if (envReady) {
     const supabase = await createClient();
-    const [servicesRes, categoriesRes] = await Promise.all([
-      supabase
-        .from("services")
-        .select("id, title, tagline, url, thumbnail_url, categories(slug, name)")
-        .eq("status", "PUBLISHED")
-        .order("published_at", { ascending: false })
-        .limit(24),
-      supabase
-        .from("categories")
-        .select("slug, name")
-        .eq("is_active", true)
-        .order("sort_order"),
+    const [
+      {
+        data: { user },
+      },
+      itemsResult,
+      categoriesResult,
+    ] = await Promise.all([
+      supabase.auth.getUser(),
+      listPublishedWithCategory(supabase, { limit: 24 }),
+      listActiveCategories(supabase),
     ]);
-    items = (servicesRes.data ?? []) as unknown as ServiceCard[];
-    categories = categoriesRes.data ?? [];
+    items = itemsResult;
+    categories = categoriesResult;
+    isLoggedIn = Boolean(user);
   }
 
   return (
@@ -55,13 +50,23 @@ export default async function HomePage() {
           인증된, 누구나 둘러볼 수 있는 한 페이지를요.
         </p>
         <div className="flex flex-wrap gap-3 pt-2">
-          <Link
-            href="/login"
-            className="cursor-pointer inline-flex items-center gap-2 rounded-full bg-[color:var(--foreground)] text-[color:var(--background)] px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
-          >
-            내 페이지 만들기
-            <span aria-hidden="true">→</span>
-          </Link>
+          {isLoggedIn ? (
+            <Link
+              href="/me"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-full bg-[color:var(--foreground)] text-[color:var(--background)] px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              내 페이지로
+              <span aria-hidden="true">→</span>
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="cursor-pointer inline-flex items-center gap-2 rounded-full bg-[color:var(--foreground)] text-[color:var(--background)] px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              내 페이지 만들기
+              <span aria-hidden="true">→</span>
+            </Link>
+          )}
           <a
             href="#latest"
             className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] px-5 py-2.5 text-sm font-medium hover:border-[color:var(--foreground)] transition-colors"
@@ -99,57 +104,18 @@ export default async function HomePage() {
           </span>
         </div>
         {items.length === 0 ? (
-          <EmptyState />
+          <EmptyState isLoggedIn={isLoggedIn} />
         ) : (
           <ul className="grid gap-x-8 gap-y-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((s) => (
               <li key={s.id}>
-                <ServiceCardLink service={s} />
+                <ServiceCardLink service={s} showCategory />
               </li>
             ))}
           </ul>
         )}
       </section>
     </div>
-  );
-}
-
-function ServiceCardLink({ service: s }: { service: ServiceCard }) {
-  return (
-    <Link
-      href={`/s/${s.id}`}
-      className="group cursor-pointer flex flex-col gap-3 h-full"
-    >
-      <div className="aspect-[16/10] rounded-lg bg-[color:var(--card)] border border-[color:var(--border)] overflow-hidden group-hover:border-[color:var(--foreground)] transition-colors">
-        {s.thumbnail_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={s.thumbnail_url}
-            alt={`${s.title} 썸네일`}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <span className="font-serif text-5xl text-[color:var(--muted)] italic">
-              {s.title.charAt(0).toLowerCase()}
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="flex flex-col gap-1">
-        <div className="text-[11px] uppercase tracking-[0.14em] text-[color:var(--muted)]">
-          {s.categories?.name ?? "기타"}
-        </div>
-        <div className="font-serif text-xl leading-snug group-hover:text-[color:var(--accent)] transition-colors">
-          {s.title}
-        </div>
-        {s.tagline && (
-          <p className="text-sm text-[color:var(--muted)] line-clamp-2 leading-relaxed">
-            {s.tagline}
-          </p>
-        )}
-      </div>
-    </Link>
   );
 }
 
@@ -181,19 +147,33 @@ function SetupNotice() {
   );
 }
 
-function EmptyState() {
+function EmptyState({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <div className="rounded-lg border border-dashed border-[color:var(--border)] px-8 py-16 text-center">
       <p className="font-serif text-2xl mb-2">아직 비어 있어요.</p>
       <p className="text-sm text-[color:var(--muted)]">
-        처음으로 자리를 잡아보세요.{" "}
-        <Link
-          href="/login"
-          className="underline underline-offset-4 text-[color:var(--accent)] hover:opacity-80"
-        >
-          로그인
-        </Link>
-        하고 내 웹앱을 등록할 수 있어요.
+        {isLoggedIn ? (
+          <>
+            첫 자리를 잡아보세요.{" "}
+            <Link
+              href="/me/services/new"
+              className="underline underline-offset-4 text-[color:var(--accent)] hover:opacity-80"
+            >
+              내 웹앱 등록하기
+            </Link>
+          </>
+        ) : (
+          <>
+            처음으로 자리를 잡아보세요.{" "}
+            <Link
+              href="/login"
+              className="underline underline-offset-4 text-[color:var(--accent)] hover:opacity-80"
+            >
+              로그인
+            </Link>
+            하고 내 웹앱을 등록할 수 있어요.
+          </>
+        )}
       </p>
     </div>
   );
