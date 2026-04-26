@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8f4ec;
+  --foreground: #1a1814;
+  --muted: #5a544a;
+  --border: rgba(26, 24, 20, 0.12);
+  --card: #fefcf7;
+  --accent: #c2410c;
+  --accent-foreground: #fef7ed;
+  --success: #3f7d3f;
+  --warning: #a6632a;
+  --ring: #c2410c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #11100e;
+    --foreground: #ede6d3;
+    --muted: #a39a87;
+    --border: rgba(237, 230, 211, 0.14);
+    --card: #1a1814;
+    --accent: #e7936f;
+    --accent-foreground: #11100e;
+    --success: #7fb77f;
+    --warning: #d9a674;
+    --ring: #e7936f;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-ring: var(--ring);
+
+  --font-sans:
+    "Pretendard Variable", Pretendard, var(--font-inter), -apple-system,
+    BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Noto Sans KR",
+    "Malgun Gothic", sans-serif;
+  --font-serif: var(--font-instrument-serif), "Pretendard Variable", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    "Pretendard Variable", Pretendard, var(--font-inter), -apple-system,
+    BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Noto Sans KR",
+    "Malgun Gothic", sans-serif;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
