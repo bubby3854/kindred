@@ -11,6 +11,7 @@ type Initial = {
   description: string;
   url: string;
   category_id: number | null;
+  tags: string;
 };
 
 const EMPTY_INITIAL: Initial = {
@@ -19,6 +20,7 @@ const EMPTY_INITIAL: Initial = {
   description: "",
   url: "",
   category_id: null,
+  tags: "",
 };
 
 export function ServiceForm({
@@ -89,6 +91,16 @@ export function ServiceForm({
             </option>
           ))}
         </select>
+      </Field>
+
+      <Field label="태그" hint="쉼표로 구분, 최대 8개. 자동 소문자 변환.">
+        <input
+          name="tags"
+          maxLength={200}
+          defaultValue={init.tags}
+          placeholder="next.js, supabase, ai"
+          className="w-full rounded-md border border-[color:var(--border)] bg-[color:var(--card)] px-3 py-2.5 outline-none focus:border-[color:var(--foreground)] font-mono text-sm transition-colors"
+        />
       </Field>
 
       <Field label="소개" hint="2,000자 이내. 길게 적어도 좋아요.">

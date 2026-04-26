@@ -105,6 +105,7 @@ export default async function EditServicePage({
             description: service.description ?? "",
             url: service.url,
             category_id: service.category_id,
+            tags: (service.tags ?? []).join(", "),
           }}
         />
       </section>

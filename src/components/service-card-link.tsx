@@ -1,12 +1,19 @@
 import Link from "next/link";
 import type { PublishedServiceCard } from "@/lib/repositories/services";
+import { LikeButton } from "@/components/like-button";
 
 export function ServiceCardLink({
   service: s,
   showCategory = false,
+  likeCount,
+  likedByViewer = false,
+  isLoggedIn = false,
 }: {
   service: PublishedServiceCard;
   showCategory?: boolean;
+  likeCount?: number;
+  likedByViewer?: boolean;
+  isLoggedIn?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-3 h-full">
@@ -38,8 +45,20 @@ export function ServiceCardLink({
             {s.tagline}
           </p>
         )}
+        {s.tags && s.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {s.tags.slice(0, 4).map((t) => (
+              <span
+                key={t}
+                className="inline-flex items-center rounded-full border border-[color:var(--border)] px-2 py-0.5 text-[11px] text-[color:var(--muted)] font-mono"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
-      <div className="mt-auto flex gap-2 pt-2">
+      <div className="mt-auto flex items-center gap-2 pt-2">
         <a
           href={s.url}
           target="_blank"
@@ -53,9 +72,18 @@ export function ServiceCardLink({
           href={`/s/${s.id}`}
           className="cursor-pointer flex-1 inline-flex items-center justify-center gap-1.5 rounded-full border border-[color:var(--border)] px-3 py-2 text-sm font-medium hover:border-[color:var(--foreground)] transition-colors"
         >
-          소개 보기
+          소개
           <span aria-hidden="true">→</span>
         </Link>
+        {likeCount !== undefined && (
+          <LikeButton
+            serviceId={s.id}
+            initialCount={likeCount}
+            initialLiked={likedByViewer}
+            isLoggedIn={isLoggedIn}
+            size="sm"
+          />
+        )}
       </div>
     </div>
   );

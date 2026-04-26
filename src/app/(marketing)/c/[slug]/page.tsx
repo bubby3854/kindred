@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { findBySlug as findCategoryBySlug } from "@/lib/repositories/categories";
 import { listPublishedByCategorySlug } from "@/lib/repositories/services";
+import { loadCardLikeMeta } from "@/lib/use-cases/cards-enrichment";
 import { ServiceCardLink } from "@/components/service-card-link";
 
 export const revalidate = 60;
@@ -32,7 +33,12 @@ export default async function CategoryPage({
   const category = await findCategoryBySlug(supabase, slug);
   if (!category) notFound();
 
-  const items = await listPublishedByCategorySlug(supabase, slug, { limit: 60 });
+  const [items, userResult] = await Promise.all([
+    listPublishedByCategorySlug(supabase, slug, { limit: 60 }),
+    supabase.auth.getUser(),
+  ]);
+  const viewer = userResult.data.user;
+  const likeMeta = await loadCardLikeMeta(supabase, items, viewer?.id ?? null);
 
   return (
     <div className="mx-auto max-w-6xl px-6 pt-16 pb-24 flex flex-col gap-12">
@@ -77,7 +83,12 @@ export default async function CategoryPage({
           <ul className="grid gap-x-8 gap-y-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((s) => (
               <li key={s.id}>
-                <ServiceCardLink service={s} />
+                <ServiceCardLink
+                  service={s}
+                  likeCount={likeMeta.counts.get(s.id) ?? 0}
+                  likedByViewer={likeMeta.likedByViewer.has(s.id)}
+                  isLoggedIn={Boolean(viewer)}
+                />
               </li>
             ))}
           </ul>

@@ -1,8 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getPublicDetail } from "@/lib/repositories/services";
+import {
+  getPublicDetail,
+  listPublishedByOwner,
+} from "@/lib/repositories/services";
 import { findById as findProfileById } from "@/lib/repositories/profiles";
+import {
+  countForService as countLikesForService,
+  existsForUser as userLikedService,
+} from "@/lib/repositories/likes";
+import { LikeButton } from "@/components/like-button";
+import { ServiceCardLink } from "@/components/service-card-link";
 
 export const revalidate = 60;
 
@@ -45,7 +54,17 @@ export default async function ServiceDetailPage({
   const isOwner = Boolean(viewer && viewer.id === service.owner_id);
   if (service.status !== "PUBLISHED" && !isOwner) notFound();
 
-  const owner = await findProfileById(supabase, service.owner_id);
+  const [owner, likeCount, viewerLiked, sameMakerWorks] = await Promise.all([
+    findProfileById(supabase, service.owner_id),
+    countLikesForService(supabase, service.id),
+    viewer
+      ? userLikedService(supabase, service.id, viewer.id)
+      : Promise.resolve(false),
+    listPublishedByOwner(supabase, service.owner_id, {
+      limit: 4,
+      excludeId: service.id,
+    }),
+  ]);
 
   const ownerName =
     owner?.display_name ?? owner?.username ?? "익명의 메이커";
@@ -100,10 +119,28 @@ export default async function ServiceDetailPage({
             바로 가기
             <span aria-hidden="true">↗</span>
           </a>
+          <LikeButton
+            serviceId={service.id}
+            initialCount={likeCount}
+            initialLiked={viewerLiked}
+            isLoggedIn={Boolean(viewer)}
+          />
           <span className="text-sm text-[color:var(--muted)] font-mono">
             {prettyHost(service.url)}
           </span>
         </div>
+        {service.tags && service.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {service.tags.map((t) => (
+              <span
+                key={t}
+                className="inline-flex items-center rounded-full border border-[color:var(--border)] px-3 py-1 text-xs text-[color:var(--muted)] font-mono"
+              >
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
       </header>
 
       <div className="aspect-[16/10] rounded-xl bg-[color:var(--card)] border border-[color:var(--border)] overflow-hidden">
@@ -161,6 +198,21 @@ export default async function ServiceDetailPage({
         </section>
       )}
 
+      {sameMakerWorks.length > 0 && (
+        <section className="flex flex-col gap-5">
+          <h2 className="font-serif text-2xl border-b border-[color:var(--border)] pb-3">
+            {ownerName}님의 다른 작품
+          </h2>
+          <ul className="grid gap-x-6 gap-y-8 grid-cols-1 sm:grid-cols-2">
+            {sameMakerWorks.slice(0, 4).map((s) => (
+              <li key={s.id}>
+                <ServiceCardLink service={s} showCategory />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <footer className="flex items-center justify-between gap-3 flex-wrap pt-6 border-t border-[color:var(--border)] text-sm text-[color:var(--muted)]">
         <div className="flex items-center gap-3">
           {owner?.avatar_url ? (
@@ -181,7 +233,12 @@ export default async function ServiceDetailPage({
             </span>
           )}
           <span>
-            <span className="text-[color:var(--foreground)]">{ownerName}</span>
+            <Link
+              href={`/u/${service.owner_id}`}
+              className="text-[color:var(--foreground)] hover:text-[color:var(--accent)] transition-colors underline underline-offset-4"
+            >
+              {ownerName}
+            </Link>
             님의 작업
           </span>
         </div>

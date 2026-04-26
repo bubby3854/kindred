@@ -13,6 +13,7 @@ export type PublishedServiceCard = {
   tagline: string | null;
   url: string;
   thumbnail_url: string | null;
+  tags: string[];
   categories: { slug: string; name: string } | null;
 };
 
@@ -41,6 +42,7 @@ export type OwnedServiceFull = {
   description: string | null;
   url: string;
   thumbnail_url: string | null;
+  tags: string[];
   status: ServiceStatus;
   verify_token: string;
   verified_at: string | null;
@@ -58,6 +60,7 @@ export type PublicServiceDetail = {
   description: string | null;
   url: string;
   thumbnail_url: string | null;
+  tags: string[];
   status: ServiceStatus;
   published_at: string | null;
   categories: { slug: string; name: string } | null;
@@ -70,6 +73,7 @@ export type ServiceCreateInput = {
   tagline: string | null;
   description: string | null;
   url: string;
+  tags?: string[];
 };
 
 export type ServiceUpdateInput = {
@@ -78,7 +82,13 @@ export type ServiceUpdateInput = {
   tagline?: string | null;
   description?: string | null;
   url?: string;
+  tags?: string[];
 };
+
+const CARD_SELECT =
+  "id, title, tagline, url, thumbnail_url, tags, categories(slug, name)";
+const CARD_SELECT_CAT_INNER =
+  "id, title, tagline, url, thumbnail_url, tags, categories!inner(slug, name)";
 
 export async function listPublishedWithCategory(
   supabase: SupabaseClient,
@@ -86,7 +96,7 @@ export async function listPublishedWithCategory(
 ): Promise<PublishedServiceCard[]> {
   const { data } = await supabase
     .from("services")
-    .select("id, title, tagline, url, thumbnail_url, categories(slug, name)")
+    .select(CARD_SELECT)
     .eq("status", "PUBLISHED")
     .order("published_at", { ascending: false })
     .limit(limit);
@@ -100,11 +110,48 @@ export async function listPublishedByCategorySlug(
 ): Promise<PublishedServiceCard[]> {
   const { data } = await supabase
     .from("services")
-    .select(
-      "id, title, tagline, url, thumbnail_url, categories!inner(slug, name)",
-    )
+    .select(CARD_SELECT_CAT_INNER)
     .eq("status", "PUBLISHED")
     .eq("categories.slug", slug)
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as unknown as PublishedServiceCard[];
+}
+
+export async function listPublishedByOwner(
+  supabase: SupabaseClient,
+  ownerId: string,
+  { limit, excludeId }: { limit: number; excludeId?: string } = { limit: 60 },
+): Promise<PublishedServiceCard[]> {
+  let q = supabase
+    .from("services")
+    .select(CARD_SELECT)
+    .eq("status", "PUBLISHED")
+    .eq("owner_id", ownerId)
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  if (excludeId) q = q.neq("id", excludeId);
+  const { data } = await q;
+  return (data ?? []) as unknown as PublishedServiceCard[];
+}
+
+export async function searchPublished(
+  supabase: SupabaseClient,
+  query: string,
+  { limit }: { limit: number },
+): Promise<PublishedServiceCard[]> {
+  const term = query.trim();
+  if (!term) return [];
+  // Escape % and _ so user input doesn't act as wildcards.
+  const escaped = term.replace(/[%_\\]/g, (m) => `\\${m}`);
+  const pattern = `%${escaped}%`;
+  const { data } = await supabase
+    .from("services")
+    .select(CARD_SELECT)
+    .eq("status", "PUBLISHED")
+    .or(
+      `title.ilike.${pattern},tagline.ilike.${pattern},description.ilike.${pattern}`,
+    )
     .order("published_at", { ascending: false })
     .limit(limit);
   return (data ?? []) as unknown as PublishedServiceCard[];
@@ -130,7 +177,7 @@ export async function getOwnedById(
   const { data, error } = await supabase
     .from("services")
     .select(
-      "id, owner_id, category_id, title, tagline, description, url, thumbnail_url, status, verify_token, verified_at, last_verified_at, published_at, created_at, updated_at",
+      "id, owner_id, category_id, title, tagline, description, url, thumbnail_url, tags, status, verify_token, verified_at, last_verified_at, published_at, created_at, updated_at",
     )
     .eq("id", id)
     .eq("owner_id", ownerId)
@@ -146,7 +193,7 @@ export async function getPublicDetail(
   const { data, error } = await supabase
     .from("services")
     .select(
-      "id, owner_id, title, tagline, description, url, thumbnail_url, status, published_at, categories(slug, name)",
+      "id, owner_id, title, tagline, description, url, thumbnail_url, tags, status, published_at, categories(slug, name)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -246,6 +293,7 @@ export async function createOwned(
       tagline: input.tagline,
       description: input.description,
       url: input.url,
+      tags: input.tags ?? [],
       status: "DRAFT",
     })
     .select("id")
@@ -266,6 +314,7 @@ export async function updateOwned(
   if (patch.tagline !== undefined) dbPatch.tagline = patch.tagline;
   if (patch.description !== undefined) dbPatch.description = patch.description;
   if (patch.url !== undefined) dbPatch.url = patch.url;
+  if (patch.tags !== undefined) dbPatch.tags = patch.tags;
   if (Object.keys(dbPatch).length === 0) return true;
   const { error } = await supabase
     .from("services")

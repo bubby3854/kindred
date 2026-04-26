@@ -59,19 +59,38 @@ export default async function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <header className="border-b border-[color:var(--border)]">
-          <nav className="mx-auto max-w-6xl flex items-center justify-between px-6 py-5">
+          <nav className="mx-auto max-w-6xl flex items-center justify-between px-6 py-5 gap-4">
             <Link
               href="/"
-              className="font-serif text-2xl leading-none tracking-tight"
+              className="font-serif text-2xl leading-none tracking-tight shrink-0"
             >
               kindred
             </Link>
-            <div className="flex items-center gap-7 text-sm">
+            <form
+              action="/search"
+              method="get"
+              className="hidden md:flex flex-1 max-w-sm"
+            >
+              <input
+                name="q"
+                type="search"
+                placeholder="검색"
+                aria-label="검색"
+                className="w-full rounded-full border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-1.5 text-sm outline-none focus:border-[color:var(--foreground)] transition-colors"
+              />
+            </form>
+            <div className="flex items-center gap-5 text-sm shrink-0">
               <Link
                 href="/"
                 className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
               >
                 둘러보기
+              </Link>
+              <Link
+                href="/community"
+                className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+              >
+                커뮤니티
               </Link>
               <Link
                 href="/me"

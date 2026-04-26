@@ -19,6 +19,7 @@ const FieldsSchema = z.object({
   description: z.string().trim().max(2000).optional().default(""),
   url: z.string().trim().url("올바른 URL이 아닙니다"),
   category_id: z.coerce.number().int().positive("카테고리를 선택해주세요"),
+  tags: z.string().trim().max(200).optional().default(""),
 });
 
 export type FormState = { ok: true } | { ok: false; error: string } | null;
@@ -30,7 +31,19 @@ function fromForm(formData: FormData) {
     description: (formData.get("description") as string | null) ?? "",
     url: (formData.get("url") as string | null) ?? "",
     category_id: (formData.get("category_id") as string | null) ?? "",
+    tags: (formData.get("tags") as string | null) ?? "",
   };
+}
+
+function normalizeTags(input: string): string[] {
+  return Array.from(
+    new Set(
+      input
+        .split(",")
+        .map((t) => t.trim().toLowerCase())
+        .filter((t) => t.length > 0 && t.length <= 24),
+    ),
+  ).slice(0, 8);
 }
 
 export async function createServiceAction(
@@ -63,6 +76,7 @@ export async function createServiceAction(
     tagline: parsed.data.tagline || null,
     description: parsed.data.description || null,
     url: parsed.data.url,
+    tags: normalizeTags(parsed.data.tags),
   });
 
   if (!created) {
@@ -95,6 +109,7 @@ export async function updateServiceAction(
     tagline: parsed.data.tagline || null,
     description: parsed.data.description || null,
     url: parsed.data.url,
+    tags: normalizeTags(parsed.data.tags),
   });
 
   if (!ok) return { ok: false, error: "저장에 실패했습니다." };

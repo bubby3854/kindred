@@ -5,6 +5,7 @@ import {
   listPublishedWithCategory,
   type PublishedServiceCard,
 } from "@/lib/repositories/services";
+import { loadCardLikeMeta, type CardLikeMeta } from "@/lib/use-cases/cards-enrichment";
 import { ServiceCardLink } from "@/components/service-card-link";
 
 export default async function HomePage() {
@@ -16,6 +17,7 @@ export default async function HomePage() {
   let items: PublishedServiceCard[] = [];
   let categories: CategorySummary[] = [];
   let isLoggedIn = false;
+  let likeMeta: CardLikeMeta = { counts: new Map(), likedByViewer: new Set() };
 
   if (envReady) {
     const supabase = await createClient();
@@ -33,6 +35,7 @@ export default async function HomePage() {
     items = itemsResult;
     categories = categoriesResult;
     isLoggedIn = Boolean(user);
+    likeMeta = await loadCardLikeMeta(supabase, items, user?.id ?? null);
   }
 
   return (
@@ -109,7 +112,13 @@ export default async function HomePage() {
           <ul className="grid gap-x-8 gap-y-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((s) => (
               <li key={s.id}>
-                <ServiceCardLink service={s} showCategory />
+                <ServiceCardLink
+                  service={s}
+                  showCategory
+                  likeCount={likeMeta.counts.get(s.id) ?? 0}
+                  likedByViewer={likeMeta.likedByViewer.has(s.id)}
+                  isLoggedIn={isLoggedIn}
+                />
               </li>
             ))}
           </ul>
