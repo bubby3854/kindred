@@ -134,6 +134,33 @@ export default async function ServiceDetailPage({
         </section>
       )}
 
+      {(owner?.contact_email || owner?.external_url) && (
+        <section className="flex flex-col gap-4 rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] p-6">
+          <h2 className="font-serif text-xl">메이커에게 연락하기</h2>
+          <div className="flex flex-wrap gap-3">
+            {owner.contact_email && (
+              <a
+                href={`mailto:${owner.contact_email}`}
+                className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] px-4 py-2 text-sm hover:border-[color:var(--foreground)] transition-colors font-mono"
+              >
+                ✉ {owner.contact_email}
+              </a>
+            )}
+            {owner.external_url && (
+              <a
+                href={owner.external_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] px-4 py-2 text-sm hover:border-[color:var(--foreground)] transition-colors"
+              >
+                {prettyHost(owner.external_url)}
+                <span aria-hidden="true">↗</span>
+              </a>
+            )}
+          </div>
+        </section>
+      )}
+
       <footer className="flex items-center justify-between gap-3 flex-wrap pt-6 border-t border-[color:var(--border)] text-sm text-[color:var(--muted)]">
         <div className="flex items-center gap-3">
           {owner?.avatar_url ? (

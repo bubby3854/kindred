@@ -38,9 +38,17 @@ export default async function DashboardPage() {
   return (
     <div className="mx-auto max-w-4xl px-6 pt-16 pb-24 flex flex-col gap-12">
       <header className="flex flex-col gap-3">
-        <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--muted)]">
-          내 페이지
-        </p>
+        <div className="flex items-baseline justify-between gap-4 flex-wrap">
+          <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--muted)]">
+            내 페이지
+          </p>
+          <Link
+            href="/me/profile"
+            className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors underline underline-offset-4"
+          >
+            프로필 편집
+          </Link>
+        </div>
         <h1 className="font-serif text-5xl leading-tight">내 서비스.</h1>
       </header>
 
