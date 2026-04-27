@@ -204,7 +204,7 @@ export default async function RootLayout({
           </nav>
         </header>
         <main className="flex-1">{children}</main>
-        <SitePopupGate popups={activePopups} />
+        <SitePopupGate popups={activePopups} viewerId={user?.id ?? null} />
         <footer className="border-t border-[color:var(--border)] mt-24">
           <div className="mx-auto max-w-6xl px-6 py-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-[color:var(--muted)]">
             <span>

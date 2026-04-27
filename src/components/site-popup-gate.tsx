@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import type { SitePopup } from "@/lib/repositories/site-popups";
 
-const STORAGE_KEY = "kindred:dismissed-popups";
+function storageKey(viewerId: string | null): string {
+  return `kindred:dismissed-popups:${viewerId ?? "anon"}`;
+}
 
-function readDismissed(): Set<string> {
+function readDismissed(viewerId: string | null): Set<string> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey(viewerId));
     if (!raw) return new Set();
     const arr = JSON.parse(raw);
     if (Array.isArray(arr)) return new Set(arr.filter((x) => typeof x === "string"));
@@ -17,26 +19,36 @@ function readDismissed(): Set<string> {
   return new Set();
 }
 
-function writeDismissed(set: Set<string>) {
+function writeDismissed(viewerId: string | null, set: Set<string>) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(set)));
+    localStorage.setItem(storageKey(viewerId), JSON.stringify(Array.from(set)));
   } catch {
     // ignore
   }
 }
 
-export function SitePopupGate({ popups }: { popups: SitePopup[] }) {
+export function SitePopupGate({
+  popups,
+  viewerId,
+}: {
+  popups: SitePopup[];
+  viewerId: string | null;
+}) {
   const [current, setCurrent] = useState<SitePopup | null>(null);
 
   useEffect(() => {
-    if (popups.length === 0) return;
-    const dismissed = readDismissed();
-    const next = popups.find((p) => !dismissed.has(p.id));
+    if (popups.length === 0) {
+      // viewerId could have changed (logout/switch account) — reset.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCurrent(null);
+      return;
+    }
+    const dismissed = readDismissed(viewerId);
+    const next = popups.find((p) => !dismissed.has(p.id)) ?? null;
     // localStorage is only available client-side, so we must read on mount
     // and update state if a non-dismissed popup exists.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (next) setCurrent(next);
-  }, [popups]);
+    setCurrent(next);
+  }, [popups, viewerId]);
 
   useEffect(() => {
     if (!current) return;
@@ -50,9 +62,9 @@ export function SitePopupGate({ popups }: { popups: SitePopup[] }) {
 
   function dismiss() {
     if (!current) return;
-    const dismissed = readDismissed();
+    const dismissed = readDismissed(viewerId);
     dismissed.add(current.id);
-    writeDismissed(dismissed);
+    writeDismissed(viewerId, dismissed);
     // Show next pending popup if any.
     const next = popups.find((p) => !dismissed.has(p.id));
     setCurrent(next ?? null);
