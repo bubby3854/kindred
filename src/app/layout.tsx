@@ -195,6 +195,12 @@ export default async function RootLayout({
             </span>
             <div className="flex items-center gap-5">
               <Link
+                href="/about"
+                className="hover:text-[color:var(--foreground)] transition-colors"
+              >
+                소개
+              </Link>
+              <Link
                 href="/terms"
                 className="hover:text-[color:var(--foreground)] transition-colors"
               >

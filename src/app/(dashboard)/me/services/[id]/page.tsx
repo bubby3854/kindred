@@ -110,6 +110,10 @@ export default async function EditServicePage({
         />
       </section>
 
+      {service.status === "PUBLISHED" && (
+        <ShowcaseBadge serviceId={service.id} />
+      )}
+
       <section className="flex flex-col gap-3 pt-6 border-t border-[color:var(--border)]">
         <h2 className="font-serif text-xl text-[color:var(--muted)]">
           위험 구역
@@ -117,5 +121,37 @@ export default async function EditServicePage({
         <DeleteButton serviceId={service.id} title={service.title} />
       </section>
     </div>
+  );
+}
+
+function ShowcaseBadge({ serviceId }: { serviceId: string }) {
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://kindred-chi.vercel.app";
+  const linkUrl = `${siteUrl}/s/${serviceId}`;
+  const badgeUrl = `${siteUrl}/badge/s/${serviceId}`;
+  const snippet = `<a href="${linkUrl}" target="_blank" rel="noopener">\n  <img src="${badgeUrl}" alt="kindred에 등록됨" width="220" height="44" />\n</a>`;
+
+  return (
+    <section className="flex flex-col gap-4 rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] p-6">
+      <div className="flex flex-col gap-2">
+        <h2 className="font-serif text-2xl">쇼케이스 배지</h2>
+        <p className="text-sm text-[color:var(--muted)] leading-relaxed">
+          본인 사이트에 붙이면 방문자가 한 번에 kindred 페이지로 올 수 있어요.
+          아래 HTML 을 사이트 어디에든 붙여넣으세요.
+        </p>
+      </div>
+      <div className="flex justify-center py-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`/badge/s/${serviceId}`}
+          alt="kindred에 등록됨"
+          width={220}
+          height={44}
+        />
+      </div>
+      <pre className="rounded-md border border-[color:var(--border)] bg-[color:var(--background)] px-4 py-3 text-xs font-mono overflow-x-auto whitespace-pre">
+{snippet}
+      </pre>
+    </section>
   );
 }

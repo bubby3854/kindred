@@ -67,6 +67,25 @@ export async function countsByServiceIds(
   return counts;
 }
 
+export async function recentCountsByServiceIds(
+  supabase: SupabaseClient,
+  serviceIds: string[],
+  sinceIso: string,
+): Promise<Map<string, number>> {
+  if (serviceIds.length === 0) return new Map();
+  const { data } = await supabase
+    .from("likes")
+    .select("service_id")
+    .in("service_id", serviceIds)
+    .gte("created_at", sinceIso);
+  const counts = new Map<string, number>();
+  for (const id of serviceIds) counts.set(id, 0);
+  for (const row of (data ?? []) as { service_id: string }[]) {
+    counts.set(row.service_id, (counts.get(row.service_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
 export async function likedByUserFromSet(
   supabase: SupabaseClient,
   userId: string,

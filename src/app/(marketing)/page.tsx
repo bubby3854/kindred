@@ -6,6 +6,7 @@ import {
   type PublishedServiceCard,
 } from "@/lib/repositories/services";
 import { loadCardLikeMeta, type CardLikeMeta } from "@/lib/use-cases/cards-enrichment";
+import { recentCountsByServiceIds } from "@/lib/repositories/likes";
 import { ServiceCardLink } from "@/components/service-card-link";
 import { SortTabs, parseSortKey } from "@/components/sort-tabs";
 
@@ -23,6 +24,7 @@ export default async function HomePage({
   );
 
   let items: PublishedServiceCard[] = [];
+  let trendingItems: PublishedServiceCard[] = [];
   let categories: CategorySummary[] = [];
   let isLoggedIn = false;
   let likeMeta: CardLikeMeta = { counts: new Map(), likedByViewer: new Set() };
@@ -44,6 +46,24 @@ export default async function HomePage({
     categories = categoriesResult;
     isLoggedIn = Boolean(user);
     likeMeta = await loadCardLikeMeta(supabase, items, user?.id ?? null);
+
+    // Trending: top 6 by likes in last 7 days, only services with at least 1 like.
+    const sevenDaysAgo = new Date(
+      // eslint-disable-next-line react-hooks/purity
+      Date.now() - 7 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const recentCounts = await recentCountsByServiceIds(
+      supabase,
+      items.map((s) => s.id),
+      sevenDaysAgo,
+    );
+    trendingItems = [...items]
+      .filter((s) => (recentCounts.get(s.id) ?? 0) > 0)
+      .sort(
+        (a, b) =>
+          (recentCounts.get(b.id) ?? 0) - (recentCounts.get(a.id) ?? 0),
+      )
+      .slice(0, 6);
 
     if (sort === "popular") {
       items = [...items].sort(
@@ -97,6 +117,33 @@ export default async function HomePage({
       </section>
 
       {!envReady && <SetupNotice />}
+
+      {trendingItems.length > 0 && (
+        <section className="flex flex-col gap-6">
+          <div className="flex items-baseline justify-between border-b border-[color:var(--border)] pb-4">
+            <h2 className="font-serif text-3xl">
+              지금 떠오르는{" "}
+              <span className="text-[color:var(--accent)]">↑</span>
+            </h2>
+            <span className="text-sm text-[color:var(--muted)]">
+              지난 7일 기준
+            </span>
+          </div>
+          <ul className="grid gap-x-8 gap-y-10 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {trendingItems.map((s) => (
+              <li key={s.id}>
+                <ServiceCardLink
+                  service={s}
+                  showCategory
+                  likeCount={likeMeta.counts.get(s.id) ?? 0}
+                  likedByViewer={likeMeta.likedByViewer.has(s.id)}
+                  isLoggedIn={isLoggedIn}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {categories.length > 0 && (
         <section className="flex flex-col gap-4">
