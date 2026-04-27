@@ -12,6 +12,7 @@ import {
 } from "@/lib/repositories/likes";
 import { LikeButton } from "@/components/like-button";
 import { ServiceCardLink } from "@/components/service-card-link";
+import { ViewBeacon } from "@/components/view-beacon";
 
 export const revalidate = 60;
 
@@ -24,9 +25,23 @@ export async function generateMetadata({
   const supabase = await createClient();
   const service = await getPublicDetail(supabase, id);
   if (!service) return { title: "찾을 수 없음 · kindred" };
+  const description =
+    service.tagline ?? service.description?.slice(0, 160) ?? undefined;
   return {
     title: `${service.title} · kindred`,
-    description: service.tagline ?? service.description ?? undefined,
+    description,
+    openGraph: {
+      type: "article",
+      title: `${service.title} · kindred`,
+      description,
+      images: service.thumbnail_url ? [service.thumbnail_url] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${service.title} · kindred`,
+      description,
+      images: service.thumbnail_url ? [service.thumbnail_url] : undefined,
+    },
   };
 }
 
@@ -74,6 +89,7 @@ export default async function ServiceDetailPage({
 
   return (
     <article className="mx-auto max-w-4xl px-6 pt-16 pb-24 flex flex-col gap-12">
+      <ViewBeacon serviceId={service.id} />
       {isOwner && service.status !== "PUBLISHED" && (
         <div className="rounded-lg border-l-2 border-[color:var(--warning)] bg-[color:var(--card)] px-5 py-4 text-sm flex items-baseline justify-between gap-3 flex-wrap">
           <p className="text-[color:var(--muted)] leading-relaxed">
@@ -132,12 +148,13 @@ export default async function ServiceDetailPage({
         {service.tags && service.tags.length > 0 && (
           <div className="flex flex-wrap gap-2 pt-1">
             {service.tags.map((t) => (
-              <span
+              <Link
                 key={t}
-                className="inline-flex items-center rounded-full border border-[color:var(--border)] px-3 py-1 text-xs text-[color:var(--muted)] font-mono"
+                href={`/t/${encodeURIComponent(t)}`}
+                className="inline-flex items-center rounded-full border border-[color:var(--border)] px-3 py-1 text-xs text-[color:var(--muted)] font-mono hover:border-[color:var(--foreground)] hover:text-[color:var(--foreground)] transition-colors"
               >
                 {t}
-              </span>
+              </Link>
             ))}
           </div>
         )}

@@ -48,12 +48,13 @@ export function ServiceCardLink({
         {s.tags && s.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-1">
             {s.tags.slice(0, 4).map((t) => (
-              <span
+              <Link
                 key={t}
-                className="inline-flex items-center rounded-full border border-[color:var(--border)] px-2 py-0.5 text-[11px] text-[color:var(--muted)] font-mono"
+                href={`/t/${encodeURIComponent(t)}`}
+                className="inline-flex items-center rounded-full border border-[color:var(--border)] px-2 py-0.5 text-[11px] text-[color:var(--muted)] font-mono hover:border-[color:var(--foreground)] hover:text-[color:var(--foreground)] transition-colors"
               >
                 {t}
-              </span>
+              </Link>
             ))}
           </div>
         )}

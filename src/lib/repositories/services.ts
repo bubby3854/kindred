@@ -135,6 +135,23 @@ export async function listPublishedByOwner(
   return (data ?? []) as unknown as PublishedServiceCard[];
 }
 
+export async function listPublishedByTag(
+  supabase: SupabaseClient,
+  tag: string,
+  { limit }: { limit: number },
+): Promise<PublishedServiceCard[]> {
+  const normalized = tag.trim().toLowerCase();
+  if (!normalized) return [];
+  const { data } = await supabase
+    .from("services")
+    .select(CARD_SELECT)
+    .eq("status", "PUBLISHED")
+    .contains("tags", [normalized])
+    .order("published_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as unknown as PublishedServiceCard[];
+}
+
 export async function searchPublished(
   supabase: SupabaseClient,
   query: string,

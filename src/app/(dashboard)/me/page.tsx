@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { slotsForPlan, type Plan } from "@/lib/plans";
 import { listByOwner, type ServiceStatus } from "@/lib/repositories/services";
 import { findByUserId as findSubscriptionByUserId } from "@/lib/repositories/subscriptions";
 import { findById as findProfileById } from "@/lib/repositories/profiles";
+import { countsByServiceIds as likeCountsByServiceIds } from "@/lib/repositories/likes";
+import { countsByServiceIds as viewCountsByServiceIds } from "@/lib/repositories/service-views";
 import { computeSlotStatus } from "@/lib/use-cases/slot-status";
 
 export const metadata = { title: "내 페이지 · kindred" };
@@ -28,6 +31,13 @@ export default async function DashboardPage() {
   const [services, subscription] = await Promise.all([
     listByOwner(supabase, user.id),
     findSubscriptionByUserId(supabase, user.id),
+  ]);
+
+  const serviceIds = services.map((s) => s.id);
+  const admin = createAdminClient();
+  const [likeCounts, viewCounts] = await Promise.all([
+    likeCountsByServiceIds(supabase, serviceIds),
+    viewCountsByServiceIds(admin, serviceIds),
   ]);
 
   const plan = (subscription?.plan ?? "FREE") as Plan;
@@ -164,6 +174,14 @@ export default async function DashboardPage() {
                   <div className="font-serif text-lg truncate">{s.title}</div>
                   <div className="text-xs text-[color:var(--muted)] truncate font-mono">
                     {s.url}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-[color:var(--muted)] mt-1.5 font-mono">
+                    <span aria-label="조회수">
+                      👁 {viewCounts.get(s.id) ?? 0}
+                    </span>
+                    <span aria-label="좋아요">
+                      ♥ {likeCounts.get(s.id) ?? 0}
+                    </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 shrink-0">

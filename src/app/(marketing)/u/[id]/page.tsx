@@ -17,7 +17,23 @@ export async function generateMetadata({
   const supabase = await createClient();
   const profile = await findProfileById(supabase, id);
   if (!profile?.display_name) return { title: "메이커 · kindred" };
-  return { title: `${profile.display_name} · kindred` };
+  const description = `${profile.display_name}님의 작품을 kindred에서 만나보세요.`;
+  return {
+    title: `${profile.display_name} · kindred`,
+    description,
+    openGraph: {
+      type: "profile",
+      title: `${profile.display_name} · kindred`,
+      description,
+      images: profile.avatar_url ? [profile.avatar_url] : undefined,
+    },
+    twitter: {
+      card: "summary",
+      title: `${profile.display_name} · kindred`,
+      description,
+      images: profile.avatar_url ? [profile.avatar_url] : undefined,
+    },
+  };
 }
 
 export default async function MakerProfilePage({

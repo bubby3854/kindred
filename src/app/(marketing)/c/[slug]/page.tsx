@@ -5,6 +5,7 @@ import { findBySlug as findCategoryBySlug } from "@/lib/repositories/categories"
 import { listPublishedByCategorySlug } from "@/lib/repositories/services";
 import { loadCardLikeMeta } from "@/lib/use-cases/cards-enrichment";
 import { ServiceCardLink } from "@/components/service-card-link";
+import { SortTabs, parseSortKey } from "@/components/sort-tabs";
 
 export const revalidate = 60;
 
@@ -25,20 +26,32 @@ export async function generateMetadata({
 
 export default async function CategoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ sort?: string }>;
 }) {
   const { slug } = await params;
+  const { sort: sortParam } = await searchParams;
+  const sort = parseSortKey(sortParam);
   const supabase = await createClient();
   const category = await findCategoryBySlug(supabase, slug);
   if (!category) notFound();
 
-  const [items, userResult] = await Promise.all([
+  const [itemsRaw, userResult] = await Promise.all([
     listPublishedByCategorySlug(supabase, slug, { limit: 60 }),
     supabase.auth.getUser(),
   ]);
   const viewer = userResult.data.user;
-  const likeMeta = await loadCardLikeMeta(supabase, items, viewer?.id ?? null);
+  const likeMeta = await loadCardLikeMeta(supabase, itemsRaw, viewer?.id ?? null);
+  const items =
+    sort === "popular"
+      ? [...itemsRaw].sort(
+          (a, b) =>
+            (likeMeta.counts.get(b.id) ?? 0) -
+            (likeMeta.counts.get(a.id) ?? 0),
+        )
+      : itemsRaw;
 
   return (
     <div className="mx-auto max-w-6xl px-6 pt-16 pb-24 flex flex-col gap-12">
@@ -60,11 +73,14 @@ export default async function CategoryPage({
       </header>
 
       <section className="flex flex-col gap-6">
-        <div className="flex items-baseline justify-between border-b border-[color:var(--border)] pb-4">
+        <div className="flex items-baseline justify-between gap-3 flex-wrap border-b border-[color:var(--border)] pb-4">
           <h2 className="font-serif text-2xl">등록된 서비스</h2>
-          <span className="text-sm text-[color:var(--muted)]">
-            {items.length > 0 ? `총 ${items.length}개` : "아직 없음"}
-          </span>
+          <div className="flex items-center gap-4">
+            <SortTabs current={sort} basePath={`/c/${slug}`} />
+            <span className="text-sm text-[color:var(--muted)]">
+              {items.length > 0 ? `총 ${items.length}개` : "아직 없음"}
+            </span>
+          </div>
         </div>
         {items.length === 0 ? (
           <div className="rounded-lg border border-dashed border-[color:var(--border)] px-8 py-16 text-center">

@@ -7,8 +7,16 @@ import {
 } from "@/lib/repositories/services";
 import { loadCardLikeMeta, type CardLikeMeta } from "@/lib/use-cases/cards-enrichment";
 import { ServiceCardLink } from "@/components/service-card-link";
+import { SortTabs, parseSortKey } from "@/components/sort-tabs";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sort?: string }>;
+}) {
+  const { sort: sortParam } = await searchParams;
+  const sort = parseSortKey(sortParam);
+
   const envReady = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -29,13 +37,21 @@ export default async function HomePage() {
       categoriesResult,
     ] = await Promise.all([
       supabase.auth.getUser(),
-      listPublishedWithCategory(supabase, { limit: 24 }),
+      listPublishedWithCategory(supabase, { limit: 60 }),
       listActiveCategories(supabase),
     ]);
     items = itemsResult;
     categories = categoriesResult;
     isLoggedIn = Boolean(user);
     likeMeta = await loadCardLikeMeta(supabase, items, user?.id ?? null);
+
+    if (sort === "popular") {
+      items = [...items].sort(
+        (a, b) =>
+          (likeMeta.counts.get(b.id) ?? 0) - (likeMeta.counts.get(a.id) ?? 0),
+      );
+    }
+    items = items.slice(0, 24);
   }
 
   return (
@@ -100,11 +116,16 @@ export default async function HomePage() {
       )}
 
       <section id="latest" className="flex flex-col gap-6 scroll-mt-20">
-        <div className="flex items-baseline justify-between border-b border-[color:var(--border)] pb-4">
-          <h2 className="font-serif text-3xl">최근 등록</h2>
-          <span className="text-sm text-[color:var(--muted)]">
-            {items.length > 0 ? `총 ${items.length}개` : "아직 없음"}
-          </span>
+        <div className="flex items-baseline justify-between gap-3 flex-wrap border-b border-[color:var(--border)] pb-4">
+          <h2 className="font-serif text-3xl">
+            {sort === "popular" ? "인기 서비스" : "최근 등록"}
+          </h2>
+          <div className="flex items-center gap-4">
+            <SortTabs current={sort} basePath="/" />
+            <span className="text-sm text-[color:var(--muted)]">
+              {items.length > 0 ? `총 ${items.length}개` : "아직 없음"}
+            </span>
+          </div>
         </div>
         {items.length === 0 ? (
           <EmptyState isLoggedIn={isLoggedIn} />

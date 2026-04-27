@@ -25,10 +25,25 @@ const instrumentSerif = Instrument_Serif({
   display: "swap",
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://kindred-chi.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "kindred — 내가 만든 웹앱을 보여주는 곳",
   description:
     "메이커가 직접 만든 웹앱을 소유권 인증과 함께 소개하는 큐레이티드 디렉토리.",
+  openGraph: {
+    type: "website",
+    siteName: "kindred",
+    locale: "ko_KR",
+    title: "kindred — 내가 만든 웹앱을 보여주는 곳",
+    description:
+      "메이커가 직접 만든 웹앱을 소유권 인증과 함께 소개하는 큐레이티드 디렉토리.",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default async function RootLayout({
@@ -171,14 +186,33 @@ export default async function RootLayout({
         </header>
         <main className="flex-1">{children}</main>
         <footer className="border-t border-[color:var(--border)] mt-24">
-          <div className="mx-auto max-w-6xl px-6 py-10 flex items-center justify-between text-sm text-[color:var(--muted)]">
+          <div className="mx-auto max-w-6xl px-6 py-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-[color:var(--muted)]">
             <span>
               <span className="font-serif text-base text-[color:var(--foreground)]">
                 kindred
               </span>{" "}
               · {new Date().getFullYear()}
             </span>
-            <span>Next.js · Supabase · Toss Payments</span>
+            <div className="flex items-center gap-5">
+              <Link
+                href="/terms"
+                className="hover:text-[color:var(--foreground)] transition-colors"
+              >
+                이용약관
+              </Link>
+              <Link
+                href="/privacy"
+                className="hover:text-[color:var(--foreground)] transition-colors"
+              >
+                개인정보처리방침
+              </Link>
+              <Link
+                href="/community"
+                className="hover:text-[color:var(--foreground)] transition-colors"
+              >
+                커뮤니티
+              </Link>
+            </div>
           </div>
         </footer>
       </body>
