@@ -126,7 +126,7 @@ export default async function EditServicePage({
 
 function ShowcaseBadge({ serviceId }: { serviceId: string }) {
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://kindred-chi.vercel.app";
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://kindred.kr";
   const linkUrl = `${siteUrl}/s/${serviceId}`;
   const badgeUrl = `${siteUrl}/badge/s/${serviceId}`;
   const snippet = `<a href="${linkUrl}" target="_blank" rel="noopener">\n  <img src="${badgeUrl}" alt="kindred에 등록됨" width="220" height="44" />\n</a>`;

@@ -35,7 +35,7 @@ export async function startCheckoutAction(
 
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    "https://kindred-chi.vercel.app";
+    "https://kindred.kr";
 
   let result;
   try {
