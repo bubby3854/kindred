@@ -1,11 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type NotificationType = "ANNOUNCEMENT";
+export type NotificationType = "ANNOUNCEMENT" | "REPORT";
 
 export type NotificationItem = {
   id: string;
   type: NotificationType;
   body: string;
+  link: string | null;
   read_at: string | null;
   created_at: string;
 };
@@ -17,7 +18,7 @@ export async function listForUser(
 ): Promise<NotificationItem[]> {
   const { data } = await supabase
     .from("notifications")
-    .select("id, type, body, read_at, created_at")
+    .select("id, type, body, link, read_at, created_at")
     .eq("user_id", userId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
@@ -77,6 +78,31 @@ export async function fanOutAnnouncement(
     user_id: p.id,
     type: "ANNOUNCEMENT" as const,
     body,
+  }));
+  if (rows.length === 0) return { count: 0 };
+
+  const { error } = await admin.from("notifications").insert(rows);
+  if (error) return null;
+  return { count: rows.length };
+}
+
+export async function notifyAdmins(
+  admin: SupabaseClient,
+  type: NotificationType,
+  body: string,
+  link: string | null,
+): Promise<{ count: number } | null> {
+  const { data: admins, error: listErr } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("is_admin", true);
+  if (listErr || !admins) return null;
+
+  const rows = (admins as { id: string }[]).map((p) => ({
+    user_id: p.id,
+    type,
+    body,
+    link,
   }));
   if (rows.length === 0) return { count: 0 };
 

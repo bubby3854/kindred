@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
   markAllReadAction,
@@ -96,9 +97,19 @@ export function NotificationBell({
                   key={n.id}
                   className="px-4 py-3 flex flex-col gap-1.5 hover:bg-[color:var(--card)] transition-colors"
                 >
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                    {n.body}
-                  </p>
+                  {n.link ? (
+                    <Link
+                      href={n.link}
+                      onClick={() => setOpen(false)}
+                      className="text-sm whitespace-pre-wrap leading-relaxed hover:text-[color:var(--accent)] transition-colors underline underline-offset-4 decoration-[color:var(--border)] hover:decoration-[color:var(--accent)]"
+                    >
+                      {n.body}
+                    </Link>
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                      {n.body}
+                    </p>
+                  )}
                   <div className="flex items-center justify-between gap-3 text-xs text-[color:var(--muted)]">
                     <span>{new Date(n.created_at).toLocaleString("ko-KR")}</span>
                     <button

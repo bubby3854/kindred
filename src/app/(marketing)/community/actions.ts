@@ -19,8 +19,10 @@ import {
   createCommentReport,
   resolveReport,
   getCommentAuthor,
+  COMMENT_REPORT_REASONS,
   type CommentReportReason,
 } from "@/lib/repositories/community";
+import { notifyAdmins } from "@/lib/repositories/notifications";
 
 const PostSchema = z.object({
   title: z.string().trim().min(1, "제목을 입력해주세요").max(120),
@@ -164,12 +166,29 @@ export async function reportCommentAction(
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/community/${postId}`);
 
-  await createCommentReport(supabase, {
+  const reason = parsed.data as CommentReportReason;
+  const ok = await createCommentReport(supabase, {
     commentId,
     reporterId: user.id,
-    reason: parsed.data as CommentReportReason,
+    reason,
     detail: detail.trim() || null,
   });
+
+  // Only notify admins when this is a fresh report (createCommentReport
+  // returns true even on duplicate-key, but we don't have a way to
+  // distinguish here. The dedupe noise is acceptable for MVP — if the
+  // same user spams the report button they'd hit the unique constraint).
+  if (ok) {
+    const reasonLabel =
+      COMMENT_REPORT_REASONS.find((r) => r.value === reason)?.label ?? reason;
+    const admin = createAdminClient();
+    await notifyAdmins(
+      admin,
+      "REPORT",
+      `댓글 신고가 접수됐어요. (사유: ${reasonLabel})`,
+      "/admin/reports",
+    );
+  }
   revalidatePath(`/community/${postId}`);
 }
 
