@@ -85,7 +85,7 @@ export async function listPostsByAuthor(
   const { data } = await supabase
     .from("community_posts")
     .select(
-      "id, author_id, title, created_at, is_pinned, is_hidden, category, profiles(display_name, avatar_url)",
+      "id, author_id, title, created_at, is_pinned, is_hidden, category, profiles!community_posts_author_id_fkey(display_name, avatar_url)",
     )
     .eq("author_id", authorId)
     .order("created_at", { ascending: false })
@@ -128,7 +128,7 @@ export async function listPosts(
   let q = supabase
     .from("community_posts")
     .select(
-      "id, author_id, title, created_at, is_pinned, is_hidden, category, profiles(display_name, avatar_url)",
+      "id, author_id, title, created_at, is_pinned, is_hidden, category, profiles!community_posts_author_id_fkey(display_name, avatar_url)",
     )
     .order("is_pinned", { ascending: false })
     .order("created_at", { ascending: false })
@@ -145,7 +145,7 @@ export async function getPost(
   const { data } = await supabase
     .from("community_posts")
     .select(
-      "id, author_id, title, body, created_at, updated_at, is_pinned, is_hidden, category, profiles(display_name, avatar_url)",
+      "id, author_id, title, body, created_at, updated_at, is_pinned, is_hidden, category, profiles!community_posts_author_id_fkey(display_name, avatar_url)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -325,7 +325,7 @@ export async function listPendingPostReports(
   const { data } = await supabase
     .from("post_reports")
     .select(
-      "id, post_id, reporter_id, reason, detail, created_at, community_posts(id, author_id, title, body, is_hidden, created_at, profiles(display_name)), reporter:profiles!post_reports_reporter_id_fkey(display_name)",
+      "id, post_id, reporter_id, reason, detail, created_at, community_posts(id, author_id, title, body, is_hidden, created_at, profiles!community_posts_author_id_fkey(display_name)), reporter:profiles!post_reports_reporter_id_fkey(display_name)",
     )
     .eq("resolved", false)
     .order("created_at", { ascending: false })
