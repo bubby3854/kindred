@@ -1,11 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+export type CommunityPostCategory = "LAUNCH" | "HELP" | "JOB" | "CHAT";
+
+export const POST_CATEGORIES: { value: CommunityPostCategory; label: string }[] = [
+  { value: "LAUNCH", label: "출시" },
+  { value: "HELP", label: "도움 요청" },
+  { value: "JOB", label: "채용" },
+  { value: "CHAT", label: "잡담" },
+];
+
 export type CommunityPostListItem = {
   id: string;
   author_id: string;
   title: string;
   created_at: string;
   is_pinned: boolean;
+  is_hidden: boolean;
+  category: CommunityPostCategory;
   profiles: { display_name: string | null; avatar_url: string | null } | null;
 };
 
@@ -17,6 +28,8 @@ export type CommunityPostDetail = {
   created_at: string;
   updated_at: string;
   is_pinned: boolean;
+  is_hidden: boolean;
+  category: CommunityPostCategory;
   profiles: { display_name: string | null; avatar_url: string | null } | null;
 };
 
@@ -72,7 +85,7 @@ export async function listPostsByAuthor(
   const { data } = await supabase
     .from("community_posts")
     .select(
-      "id, author_id, title, created_at, is_pinned, profiles(display_name, avatar_url)",
+      "id, author_id, title, created_at, is_pinned, is_hidden, category, profiles(display_name, avatar_url)",
     )
     .eq("author_id", authorId)
     .order("created_at", { ascending: false })
@@ -107,16 +120,21 @@ export async function listCommentsByAuthor(
 
 export async function listPosts(
   supabase: SupabaseClient,
-  { limit }: { limit: number },
+  {
+    limit,
+    category,
+  }: { limit: number; category?: CommunityPostCategory },
 ): Promise<CommunityPostListItem[]> {
-  const { data } = await supabase
+  let q = supabase
     .from("community_posts")
     .select(
-      "id, author_id, title, created_at, is_pinned, profiles(display_name, avatar_url)",
+      "id, author_id, title, created_at, is_pinned, is_hidden, category, profiles(display_name, avatar_url)",
     )
     .order("is_pinned", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (category) q = q.eq("category", category);
+  const { data } = await q;
   return (data ?? []) as unknown as CommunityPostListItem[];
 }
 
@@ -127,7 +145,7 @@ export async function getPost(
   const { data } = await supabase
     .from("community_posts")
     .select(
-      "id, author_id, title, body, created_at, updated_at, is_pinned, profiles(display_name, avatar_url)",
+      "id, author_id, title, body, created_at, updated_at, is_pinned, is_hidden, category, profiles(display_name, avatar_url)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -148,7 +166,12 @@ export async function setPostPinned(
 
 export async function createPost(
   supabase: SupabaseClient,
-  input: { authorId: string; title: string; body: string },
+  input: {
+    authorId: string;
+    title: string;
+    body: string;
+    category: CommunityPostCategory;
+  },
 ): Promise<{ id: string } | null> {
   const { data, error } = await supabase
     .from("community_posts")
@@ -156,11 +179,55 @@ export async function createPost(
       author_id: input.authorId,
       title: input.title,
       body: input.body,
+      category: input.category,
     })
     .select("id")
     .single();
   if (error || !data) return null;
   return { id: data.id as string };
+}
+
+export async function updatePost(
+  supabase: SupabaseClient,
+  postId: string,
+  authorId: string,
+  patch: { title?: string; body?: string; category?: CommunityPostCategory },
+): Promise<boolean> {
+  const dbPatch: Record<string, unknown> = {};
+  if (patch.title !== undefined) dbPatch.title = patch.title;
+  if (patch.body !== undefined) dbPatch.body = patch.body;
+  if (patch.category !== undefined) dbPatch.category = patch.category;
+  if (Object.keys(dbPatch).length === 0) return true;
+  const { error } = await supabase
+    .from("community_posts")
+    .update(dbPatch)
+    .eq("id", postId)
+    .eq("author_id", authorId);
+  return !error;
+}
+
+export async function setPostHidden(
+  supabase: SupabaseClient,
+  postId: string,
+  hidden: boolean,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("community_posts")
+    .update({ is_hidden: hidden })
+    .eq("id", postId);
+  return !error;
+}
+
+export async function getPostAuthor(
+  supabase: SupabaseClient,
+  postId: string,
+): Promise<{ author_id: string } | null> {
+  const { data } = await supabase
+    .from("community_posts")
+    .select("author_id")
+    .eq("id", postId)
+    .maybeSingle();
+  return (data as { author_id: string } | null) ?? null;
 }
 
 export async function deletePost(
@@ -212,6 +279,74 @@ export async function getCommentAuthor(
     .eq("id", commentId)
     .maybeSingle();
   return (data as { author_id: string; post_id: string } | null) ?? null;
+}
+
+export type PendingPostReport = {
+  id: string;
+  post_id: string;
+  reporter_id: string;
+  reason: CommentReportReason;
+  detail: string | null;
+  created_at: string;
+  community_posts: {
+    id: string;
+    author_id: string;
+    title: string;
+    body: string;
+    is_hidden: boolean;
+    created_at: string;
+    profiles: { display_name: string | null } | null;
+  } | null;
+  reporter: { display_name: string | null } | null;
+};
+
+export async function createPostReport(
+  supabase: SupabaseClient,
+  input: {
+    postId: string;
+    reporterId: string;
+    reason: CommentReportReason;
+    detail?: string | null;
+  },
+): Promise<boolean> {
+  const { error } = await supabase.from("post_reports").insert({
+    post_id: input.postId,
+    reporter_id: input.reporterId,
+    reason: input.reason,
+    detail: input.detail ?? null,
+  });
+  return !error || error.code === "23505";
+}
+
+export async function listPendingPostReports(
+  supabase: SupabaseClient,
+  { limit }: { limit: number },
+): Promise<PendingPostReport[]> {
+  const { data } = await supabase
+    .from("post_reports")
+    .select(
+      "id, post_id, reporter_id, reason, detail, created_at, community_posts(id, author_id, title, body, is_hidden, created_at, profiles(display_name)), reporter:profiles!post_reports_reporter_id_fkey(display_name)",
+    )
+    .eq("resolved", false)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as unknown as PendingPostReport[];
+}
+
+export async function resolvePostReport(
+  supabase: SupabaseClient,
+  reportId: string,
+  adminId: string,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("post_reports")
+    .update({
+      resolved: true,
+      resolved_by: adminId,
+      resolved_at: new Date().toISOString(),
+    })
+    .eq("id", reportId);
+  return !error;
 }
 
 export async function createCommentReport(

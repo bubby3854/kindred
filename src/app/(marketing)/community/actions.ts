@@ -11,23 +11,35 @@ import {
 } from "@/lib/repositories/profiles";
 import {
   createPost,
+  updatePost,
   createComment,
   deletePost,
   deleteComment,
   setPostPinned,
+  setPostHidden,
   setCommentHidden,
   createCommentReport,
+  createPostReport,
   resolveReport,
+  resolvePostReport,
   getCommentAuthor,
+  getPostAuthor,
   getPost,
   COMMENT_REPORT_REASONS,
   type CommentReportReason,
 } from "@/lib/repositories/community";
 import { notifyAdmins, notifyOne } from "@/lib/repositories/notifications";
+import {
+  add as addPostLike,
+  remove as removePostLike,
+} from "@/lib/repositories/post-likes";
+
+const PostCategorySchema = z.enum(["LAUNCH", "HELP", "JOB", "CHAT"]);
 
 const PostSchema = z.object({
   title: z.string().trim().min(1, "제목을 입력해주세요").max(120),
   body: z.string().trim().min(1, "내용을 입력해주세요").max(8000),
+  category: PostCategorySchema,
 });
 
 const CommentSchema = z.object({
@@ -52,6 +64,7 @@ export async function createPostAction(
   const parsed = PostSchema.safeParse({
     title: (formData.get("title") as string | null) ?? "",
     body: (formData.get("body") as string | null) ?? "",
+    category: (formData.get("category") as string | null) ?? "",
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "잘못된 입력" };
@@ -70,11 +83,44 @@ export async function createPostAction(
     authorId: user.id,
     title: parsed.data.title,
     body: parsed.data.body,
+    category: parsed.data.category,
   });
   if (!created) return { ok: false, error: "등록에 실패했습니다." };
 
   revalidatePath("/community");
   redirect(`/community/${created.id}`);
+}
+
+export async function updatePostAction(
+  postId: string,
+  _prev: PostFormState,
+  formData: FormData,
+): Promise<PostFormState> {
+  const parsed = PostSchema.safeParse({
+    title: (formData.get("title") as string | null) ?? "",
+    body: (formData.get("body") as string | null) ?? "",
+    category: (formData.get("category") as string | null) ?? "",
+  });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "잘못된 입력" };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const ok = await updatePost(supabase, postId, user.id, {
+    title: parsed.data.title,
+    body: parsed.data.body,
+    category: parsed.data.category,
+  });
+  if (!ok) return { ok: false, error: "저장에 실패했습니다." };
+
+  revalidatePath("/community");
+  revalidatePath(`/community/${postId}`);
+  redirect(`/community/${postId}`);
 }
 
 export async function createCommentAction(
@@ -153,6 +199,80 @@ export async function togglePinPostAction(
   revalidatePath(`/community/${postId}`);
 }
 
+export async function toggleHidePostAction(
+  postId: string,
+  hidden: boolean,
+): Promise<void> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  await setPostHidden(admin, postId, hidden);
+  revalidatePath("/community");
+  revalidatePath(`/community/${postId}`);
+  revalidatePath("/admin/reports");
+}
+
+export async function reportPostAction(
+  postId: string,
+  formData: FormData,
+): Promise<void> {
+  const reasonRaw = (formData.get("reason") as string | null) ?? "";
+  const detail = (formData.get("detail") as string | null) ?? "";
+  const parsed = ReportReasonSchema.safeParse(reasonRaw);
+  if (!parsed.success) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/login?next=/community/${postId}`);
+
+  const reason = parsed.data as CommentReportReason;
+  const ok = await createPostReport(supabase, {
+    postId,
+    reporterId: user.id,
+    reason,
+    detail: detail.trim() || null,
+  });
+  if (ok) {
+    const reasonLabel =
+      COMMENT_REPORT_REASONS.find((r) => r.value === reason)?.label ?? reason;
+    const admin = createAdminClient();
+    await notifyAdmins(
+      admin,
+      "REPORT",
+      `게시글 신고가 접수됐어요. (사유: ${reasonLabel})`,
+      "/admin/reports",
+    );
+  }
+  revalidatePath(`/community/${postId}`);
+}
+
+export async function resolvePostReportAction(reportId: string): Promise<void> {
+  const { user } = await requireAdmin();
+  const admin = createAdminClient();
+  await resolvePostReport(admin, reportId, user.id);
+  revalidatePath("/admin/reports");
+}
+
+export async function togglePostLikeAction(
+  postId: string,
+  currentlyLiked: boolean,
+): Promise<{ ok: boolean; liked?: boolean }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false };
+
+  const ok = currentlyLiked
+    ? await removePostLike(supabase, postId, user.id)
+    : await addPostLike(supabase, postId, user.id);
+  if (!ok) return { ok: false };
+
+  revalidatePath(`/community/${postId}`);
+  return { ok: true, liked: !currentlyLiked };
+}
+
 export async function toggleHideCommentAction(
   commentId: string,
   postId: string,
@@ -218,6 +338,24 @@ export async function banCommentAuthorAction(
 
   const admin = createAdminClient();
   const author = await getCommentAuthor(admin, commentId);
+  if (!author) return;
+
+  const until = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+  await setCommentBanUntil(admin, author.author_id, until);
+  revalidatePath(`/community/${postId}`);
+  revalidatePath("/admin/reports");
+}
+
+export async function banPostAuthorAction(
+  postId: string,
+  formData: FormData,
+): Promise<void> {
+  await requireAdmin();
+  const days = Number(formData.get("days") ?? 0);
+  if (!Number.isFinite(days) || days < 1 || days > 365) return;
+
+  const admin = createAdminClient();
+  const author = await getPostAuthor(admin, postId);
   if (!author) return;
 
   const until = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();

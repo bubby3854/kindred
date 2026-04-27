@@ -1,18 +1,35 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getPost, listComments } from "@/lib/repositories/community";
+import {
+  getPost,
+  listComments,
+  POST_CATEGORIES,
+  type CommunityPostCategory,
+} from "@/lib/repositories/community";
 import { findById as findProfileById } from "@/lib/repositories/profiles";
+import {
+  countForPost as countLikesForPost,
+  existsForUser as userLikedPost,
+} from "@/lib/repositories/post-likes";
 import {
   deletePostAction,
   deleteCommentAction,
   togglePinPostAction,
+  toggleHidePostAction,
+  banPostAuthorAction,
 } from "../actions";
 import { CommentForm } from "./comment-form";
 import { ReportButton } from "./report-button";
 import { AdminCommentTools } from "./admin-comment-tools";
+import { PostLikeButton } from "@/components/post-like-button";
+import { PostReportButton } from "./post-report-button";
 
 export const revalidate = 30;
+
+const CATEGORY_LABEL: Record<CommunityPostCategory, string> = Object.fromEntries(
+  POST_CATEGORIES.map((c) => [c.value, c.label]),
+) as Record<CommunityPostCategory, string>;
 
 export async function generateMetadata({
   params,
@@ -46,6 +63,17 @@ export default async function CommunityPostPage({
   const viewerProfile = viewer ? await findProfileById(supabase, viewer.id) : null;
   const isAdmin = Boolean(viewerProfile?.is_admin);
   const isAuthor = Boolean(viewer && viewer.id === post.author_id);
+
+  // Hidden posts: visible only to author + admin (everyone else gets 404)
+  if (post.is_hidden && !isAuthor && !isAdmin) notFound();
+
+  const [likeCount, viewerLiked] = await Promise.all([
+    countLikesForPost(supabase, post.id),
+    viewer
+      ? userLikedPost(supabase, post.id, viewer.id)
+      : Promise.resolve(false),
+  ]);
+
   const authorName = post.profiles?.display_name ?? "익명의 메이커";
   const banUntil = viewerProfile?.comment_ban_until
     ? new Date(viewerProfile.comment_ban_until)
@@ -67,6 +95,12 @@ export default async function CommunityPostPage({
               📌 공지
             </span>
           )}
+          <Link
+            href={`/community?category=${post.category}`}
+            className="inline-flex items-center rounded-full border border-[color:var(--border)] px-2.5 py-0.5 text-xs text-[color:var(--muted)] hover:text-[color:var(--foreground)] hover:border-[color:var(--foreground)] transition-colors"
+          >
+            {CATEGORY_LABEL[post.category]}
+          </Link>
           <h1 className="font-serif text-4xl sm:text-5xl leading-[1.1] tracking-tight">
             {post.title}
           </h1>
@@ -99,34 +133,107 @@ export default async function CommunityPostPage({
             <span aria-hidden="true">·</span>
             <span>{new Date(post.created_at).toLocaleDateString("ko-KR")}</span>
           </div>
-          <div className="flex items-center gap-3">
-            {isAdmin && (
-              <form
-                action={togglePinPostAction.bind(null, post.id, !post.is_pinned)}
-              >
-                <button
-                  type="submit"
-                  className="cursor-pointer text-[color:var(--accent)] hover:opacity-80 underline underline-offset-4"
-                >
-                  {post.is_pinned ? "고정 해제" : "상단 고정"}
-                </button>
-              </form>
+          <div className="flex items-center gap-3 flex-wrap">
+            <PostLikeButton
+              postId={post.id}
+              initialCount={likeCount}
+              initialLiked={viewerLiked}
+              isLoggedIn={Boolean(viewer)}
+            />
+            {viewer && !isAuthor && !post.is_hidden && (
+              <PostReportButton postId={post.id} />
             )}
             {isAuthor && (
-              <form action={deletePostAction.bind(null, post.id)}>
-                <button
-                  type="submit"
-                  className="cursor-pointer text-[color:var(--accent)] hover:opacity-80 underline underline-offset-4"
+              <>
+                <Link
+                  href={`/community/${post.id}/edit`}
+                  className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] underline underline-offset-4"
                 >
-                  삭제
-                </button>
-              </form>
+                  수정
+                </Link>
+                <form action={deletePostAction.bind(null, post.id)}>
+                  <button
+                    type="submit"
+                    className="cursor-pointer text-[color:var(--accent)] hover:opacity-80 underline underline-offset-4"
+                  >
+                    삭제
+                  </button>
+                </form>
+              </>
+            )}
+            {isAdmin && (
+              <>
+                <form
+                  action={togglePinPostAction.bind(
+                    null,
+                    post.id,
+                    !post.is_pinned,
+                  )}
+                >
+                  <button
+                    type="submit"
+                    className="cursor-pointer text-[color:var(--accent)] hover:opacity-80 underline underline-offset-4"
+                  >
+                    {post.is_pinned ? "고정 해제" : "상단 고정"}
+                  </button>
+                </form>
+                <form
+                  action={toggleHidePostAction.bind(
+                    null,
+                    post.id,
+                    !post.is_hidden,
+                  )}
+                >
+                  <button
+                    type="submit"
+                    className="cursor-pointer text-[color:var(--warning)] hover:opacity-80 underline underline-offset-4"
+                  >
+                    {post.is_hidden ? "숨김 해제" : "글 숨기기"}
+                  </button>
+                </form>
+                <form
+                  action={banPostAuthorAction.bind(null, post.id)}
+                  className="inline-flex items-center gap-1"
+                >
+                  <input
+                    name="days"
+                    type="number"
+                    min={1}
+                    max={365}
+                    defaultValue={7}
+                    className="w-14 rounded-md border border-[color:var(--border)] bg-[color:var(--card)] px-1.5 py-0.5 text-xs outline-none focus:border-[color:var(--foreground)]"
+                  />
+                  <span className="text-xs">일 작성자 댓글 금지</span>
+                  <button
+                    type="submit"
+                    className="cursor-pointer rounded-full bg-[color:var(--foreground)] text-[color:var(--background)] px-2 py-0.5 text-xs hover:opacity-90"
+                  >
+                    적용
+                  </button>
+                </form>
+              </>
             )}
           </div>
         </div>
       </header>
 
-      <div className="leading-relaxed whitespace-pre-wrap">{post.body}</div>
+      {post.is_hidden ? (
+        <div className="rounded-md border border-dashed border-[color:var(--border)] px-4 py-6 text-sm italic text-[color:var(--muted)]">
+          관리자에 의해 숨김처리 되었습니다.
+          {(isAuthor || isAdmin) && (
+            <p className="mt-2 not-italic text-xs">
+              ({isAdmin ? "관리자" : "작성자"} 권한으로 원문을 봅니다)
+            </p>
+          )}
+          {(isAuthor || isAdmin) && (
+            <p className="mt-3 whitespace-pre-wrap leading-relaxed not-italic text-[color:var(--foreground)]">
+              {post.body}
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="leading-relaxed whitespace-pre-wrap">{post.body}</div>
+      )}
 
       <section className="flex flex-col gap-6 pt-6 border-t border-[color:var(--border)]">
         <h2 className="font-serif text-2xl">
