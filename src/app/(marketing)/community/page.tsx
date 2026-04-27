@@ -58,8 +58,13 @@ export default async function CommunityPage() {
                 href={`/community/${p.id}`}
                 className="flex flex-col gap-2 group"
               >
-                <h2 className="font-serif text-2xl group-hover:text-[color:var(--accent)] transition-colors">
-                  {p.title}
+                <h2 className="font-serif text-2xl group-hover:text-[color:var(--accent)] transition-colors flex items-baseline gap-2 flex-wrap">
+                  {p.is_pinned && (
+                    <span className="inline-flex items-center rounded-full bg-[color:var(--accent)]/10 border border-[color:var(--accent)]/30 px-2 py-0.5 text-[11px] text-[color:var(--accent)] font-medium tracking-wide">
+                      📌 공지
+                    </span>
+                  )}
+                  <span>{p.title}</span>
                 </h2>
                 <div className="flex items-center gap-3 text-xs text-[color:var(--muted)]">
                   <span>

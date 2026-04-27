@@ -98,6 +98,14 @@ export default async function RootLayout({
               >
                 내 페이지
               </Link>
+              {profile?.is_admin && (
+                <Link
+                  href="/admin/reports"
+                  className="text-[color:var(--accent)] hover:opacity-80 transition-opacity"
+                >
+                  관리자
+                </Link>
+              )}
               {user ? (
                 <div className="flex items-center gap-3">
                   <Link

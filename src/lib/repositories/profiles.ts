@@ -7,6 +7,8 @@ export type ProfileSummary = {
   avatar_url: string | null;
   contact_email: string | null;
   external_url: string | null;
+  is_admin: boolean;
+  comment_ban_until: string | null;
 };
 
 export type ProfileUpdateInput = {
@@ -16,7 +18,19 @@ export type ProfileUpdateInput = {
 };
 
 const SELECT_COLUMNS =
-  "id, username, display_name, avatar_url, contact_email, external_url";
+  "id, username, display_name, avatar_url, contact_email, external_url, is_admin, comment_ban_until";
+
+export async function setCommentBanUntil(
+  supabase: SupabaseClient,
+  userId: string,
+  banUntilIso: string | null,
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ comment_ban_until: banUntilIso })
+    .eq("id", userId);
+  return !error;
+}
 
 export async function findById(
   supabase: SupabaseClient,

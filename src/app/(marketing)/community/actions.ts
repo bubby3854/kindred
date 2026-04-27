@@ -4,12 +4,22 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { findById as findProfileById } from "@/lib/repositories/profiles";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  findById as findProfileById,
+  setCommentBanUntil,
+} from "@/lib/repositories/profiles";
 import {
   createPost,
   createComment,
   deletePost,
   deleteComment,
+  setPostPinned,
+  setCommentHidden,
+  createCommentReport,
+  resolveReport,
+  getCommentAuthor,
+  type CommentReportReason,
 } from "@/lib/repositories/community";
 
 const PostSchema = z.object({
@@ -20,6 +30,14 @@ const PostSchema = z.object({
 const CommentSchema = z.object({
   body: z.string().trim().min(1, "내용을 입력해주세요").max(2000),
 });
+
+const ReportReasonSchema = z.enum([
+  "SPAM",
+  "HATE",
+  "AD",
+  "INAPPROPRIATE",
+  "OTHER",
+]);
 
 export type PostFormState = { ok: true } | { ok: false; error: string } | null;
 export type CommentFormState = { ok: true } | { ok: false; error: string } | null;
@@ -77,6 +95,14 @@ export async function createCommentAction(
   const profile = await findProfileById(supabase, user.id);
   if (!profile?.display_name) redirect(`/onboarding?next=/community/${postId}`);
 
+  if (profile.comment_ban_until && new Date(profile.comment_ban_until) > new Date()) {
+    const until = new Date(profile.comment_ban_until).toLocaleString("ko-KR");
+    return {
+      ok: false,
+      error: `${until}까지 댓글 작성이 제한됩니다.`,
+    };
+  }
+
   const created = await createComment(supabase, {
     postId,
     authorId: user.id,
@@ -86,6 +112,91 @@ export async function createCommentAction(
 
   revalidatePath(`/community/${postId}`);
   return { ok: true };
+}
+
+async function requireAdmin() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  const profile = await findProfileById(supabase, user.id);
+  if (!profile?.is_admin) redirect("/");
+  return { user, profile };
+}
+
+export async function togglePinPostAction(
+  postId: string,
+  pinned: boolean,
+): Promise<void> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  await setPostPinned(admin, postId, pinned);
+  revalidatePath("/community");
+  revalidatePath(`/community/${postId}`);
+}
+
+export async function toggleHideCommentAction(
+  commentId: string,
+  postId: string,
+  hidden: boolean,
+): Promise<void> {
+  await requireAdmin();
+  const admin = createAdminClient();
+  await setCommentHidden(admin, commentId, hidden);
+  revalidatePath(`/community/${postId}`);
+  revalidatePath("/admin/reports");
+}
+
+export async function reportCommentAction(
+  commentId: string,
+  postId: string,
+  formData: FormData,
+): Promise<void> {
+  const reasonRaw = (formData.get("reason") as string | null) ?? "";
+  const detail = (formData.get("detail") as string | null) ?? "";
+  const parsed = ReportReasonSchema.safeParse(reasonRaw);
+  if (!parsed.success) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/login?next=/community/${postId}`);
+
+  await createCommentReport(supabase, {
+    commentId,
+    reporterId: user.id,
+    reason: parsed.data as CommentReportReason,
+    detail: detail.trim() || null,
+  });
+  revalidatePath(`/community/${postId}`);
+}
+
+export async function banCommentAuthorAction(
+  commentId: string,
+  postId: string,
+  formData: FormData,
+): Promise<void> {
+  await requireAdmin();
+  const days = Number(formData.get("days") ?? 0);
+  if (!Number.isFinite(days) || days < 1 || days > 365) return;
+
+  const admin = createAdminClient();
+  const author = await getCommentAuthor(admin, commentId);
+  if (!author) return;
+
+  const until = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+  await setCommentBanUntil(admin, author.author_id, until);
+  revalidatePath(`/community/${postId}`);
+  revalidatePath("/admin/reports");
+}
+
+export async function resolveReportAction(reportId: string): Promise<void> {
+  const { user } = await requireAdmin();
+  const admin = createAdminClient();
+  await resolveReport(admin, reportId, user.id);
+  revalidatePath("/admin/reports");
 }
 
 export async function deletePostAction(postId: string): Promise<void> {
