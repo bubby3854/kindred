@@ -9,6 +9,8 @@ import {
 } from "@/lib/repositories/notifications";
 import { NotificationBell } from "@/components/notification-bell";
 import { MobileNav } from "@/components/mobile-nav";
+import { SitePopupGate } from "@/components/site-popup-gate";
+import { listActive as listActivePopups } from "@/lib/repositories/site-popups";
 import { signOutAction } from "./auth-actions";
 import "./globals.css";
 
@@ -64,6 +66,7 @@ export default async function RootLayout({
         listNotificationsForUser(supabase, user.id, { limit: 20 }),
       ])
     : [0, []];
+  const activePopups = await listActivePopups(supabase);
 
   const displayName =
     profile?.display_name ?? user?.email ?? null;
@@ -201,6 +204,7 @@ export default async function RootLayout({
           </nav>
         </header>
         <main className="flex-1">{children}</main>
+        <SitePopupGate popups={activePopups} />
         <footer className="border-t border-[color:var(--border)] mt-24">
           <div className="mx-auto max-w-6xl px-6 py-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-[color:var(--muted)]">
             <span>

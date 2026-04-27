@@ -37,6 +37,12 @@ export default async function AdminLayout({
           >
             공지 작성
           </Link>
+          <Link
+            href="/admin/popups"
+            className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+          >
+            팝업 관리
+          </Link>
         </nav>
       </header>
       {children}
