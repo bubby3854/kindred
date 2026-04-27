@@ -3,6 +3,11 @@ import { Inter, Instrument_Serif } from "next/font/google";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { findById as findProfileById } from "@/lib/repositories/profiles";
+import {
+  countUnread as countUnreadNotifications,
+  listForUser as listNotificationsForUser,
+} from "@/lib/repositories/notifications";
+import { NotificationBell } from "@/components/notification-bell";
 import { signOutAction } from "./auth-actions";
 import "./globals.css";
 
@@ -37,6 +42,12 @@ export default async function RootLayout({
   } = await supabase.auth.getUser();
 
   const profile = user ? await findProfileById(supabase, user.id) : null;
+  const [unreadCount, notifications] = user
+    ? await Promise.all([
+        countUnreadNotifications(supabase, user.id),
+        listNotificationsForUser(supabase, user.id, { limit: 20 }),
+      ])
+    : [0, []];
 
   const displayName =
     profile?.display_name ?? user?.email ?? null;
@@ -108,6 +119,10 @@ export default async function RootLayout({
               )}
               {user ? (
                 <div className="flex items-center gap-3">
+                  <NotificationBell
+                    initialUnread={unreadCount}
+                    initialItems={notifications}
+                  />
                   <Link
                     href="/me"
                     aria-label={displayName ?? "내 계정"}

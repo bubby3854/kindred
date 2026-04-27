@@ -31,6 +31,12 @@ export default async function AdminLayout({
           >
             신고 내역
           </Link>
+          <Link
+            href="/admin/announcements"
+            className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+          >
+            공지 작성
+          </Link>
         </nav>
       </header>
       {children}
