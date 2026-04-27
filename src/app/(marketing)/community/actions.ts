@@ -19,10 +19,11 @@ import {
   createCommentReport,
   resolveReport,
   getCommentAuthor,
+  getPost,
   COMMENT_REPORT_REASONS,
   type CommentReportReason,
 } from "@/lib/repositories/community";
-import { notifyAdmins } from "@/lib/repositories/notifications";
+import { notifyAdmins, notifyOne } from "@/lib/repositories/notifications";
 
 const PostSchema = z.object({
   title: z.string().trim().min(1, "제목을 입력해주세요").max(120),
@@ -111,6 +112,20 @@ export async function createCommentAction(
     body: parsed.data.body,
   });
   if (!created) return { ok: false, error: "댓글 작성에 실패했습니다." };
+
+  // Notify post author about new comment (skip self-comment).
+  const post = await getPost(supabase, postId);
+  if (post && post.author_id !== user.id) {
+    const commenterName = profile.display_name ?? "누군가";
+    const admin = createAdminClient();
+    await notifyOne(
+      admin,
+      post.author_id,
+      "COMMENT",
+      `${commenterName}님이 「${post.title}」에 댓글을 남겼어요.`,
+      `/community/${postId}`,
+    );
+  }
 
   revalidatePath(`/community/${postId}`);
   return { ok: true };

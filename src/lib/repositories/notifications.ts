@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type NotificationType = "ANNOUNCEMENT" | "REPORT";
+export type NotificationType = "ANNOUNCEMENT" | "REPORT" | "COMMENT";
 
 export type NotificationItem = {
   id: string;
@@ -84,6 +84,22 @@ export async function fanOutAnnouncement(
   const { error } = await admin.from("notifications").insert(rows);
   if (error) return null;
   return { count: rows.length };
+}
+
+export async function notifyOne(
+  admin: SupabaseClient,
+  userId: string,
+  type: NotificationType,
+  body: string,
+  link: string | null,
+): Promise<boolean> {
+  const { error } = await admin.from("notifications").insert({
+    user_id: userId,
+    type,
+    body,
+    link,
+  });
+  return !error;
 }
 
 export async function notifyAdmins(

@@ -52,12 +52,20 @@ export default async function DashboardPage() {
           <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--muted)]">
             내 페이지
           </p>
-          <Link
-            href="/me/profile"
-            className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors underline underline-offset-4"
-          >
-            프로필 편집
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/me/posts"
+              className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors underline underline-offset-4"
+            >
+              내 글
+            </Link>
+            <Link
+              href="/me/profile"
+              className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors underline underline-offset-4"
+            >
+              프로필 편집
+            </Link>
+          </div>
         </div>
         <h1 className="font-serif text-5xl leading-tight">내 서비스.</h1>
       </header>

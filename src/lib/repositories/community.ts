@@ -64,6 +64,47 @@ export type PendingReport = {
   reporter: { display_name: string | null } | null;
 };
 
+export async function listPostsByAuthor(
+  supabase: SupabaseClient,
+  authorId: string,
+  { limit }: { limit: number },
+): Promise<CommunityPostListItem[]> {
+  const { data } = await supabase
+    .from("community_posts")
+    .select(
+      "id, author_id, title, created_at, is_pinned, profiles(display_name, avatar_url)",
+    )
+    .eq("author_id", authorId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as unknown as CommunityPostListItem[];
+}
+
+export type CommentByAuthor = {
+  id: string;
+  post_id: string;
+  body: string;
+  created_at: string;
+  is_hidden: boolean;
+  community_posts: { title: string } | null;
+};
+
+export async function listCommentsByAuthor(
+  supabase: SupabaseClient,
+  authorId: string,
+  { limit }: { limit: number },
+): Promise<CommentByAuthor[]> {
+  const { data } = await supabase
+    .from("community_comments")
+    .select(
+      "id, post_id, body, created_at, is_hidden, community_posts(title)",
+    )
+    .eq("author_id", authorId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  return (data ?? []) as unknown as CommentByAuthor[];
+}
+
 export async function listPosts(
   supabase: SupabaseClient,
   { limit }: { limit: number },
