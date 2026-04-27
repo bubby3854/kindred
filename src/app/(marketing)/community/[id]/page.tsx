@@ -177,7 +177,7 @@ export default async function CommunityPostPage({
                   </div>
                   {c.is_hidden ? (
                     <p className="text-sm italic text-[color:var(--muted)] rounded-md border border-dashed border-[color:var(--border)] px-3 py-2">
-                      운영자에 의해 숨김 처리되었습니다.
+                      관리자에 의해 숨김처리 되었습니다.
                     </p>
                   ) : (
                     <p className="text-sm leading-relaxed whitespace-pre-wrap">
