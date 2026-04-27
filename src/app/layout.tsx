@@ -8,6 +8,7 @@ import {
   listForUser as listNotificationsForUser,
 } from "@/lib/repositories/notifications";
 import { NotificationBell } from "@/components/notification-bell";
+import { MobileNav } from "@/components/mobile-nav";
 import { signOutAction } from "./auth-actions";
 import "./globals.css";
 
@@ -105,39 +106,47 @@ export default async function RootLayout({
                 className="w-full rounded-full border border-[color:var(--border)] bg-[color:var(--card)] px-4 py-1.5 text-sm outline-none focus:border-[color:var(--foreground)] transition-colors"
               />
             </form>
-            <div className="flex items-center gap-5 text-sm shrink-0">
-              <Link
-                href="/"
-                className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
-              >
-                둘러보기
-              </Link>
-              <Link
-                href="/about"
-                className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
-              >
-                소개
-              </Link>
-              <Link
-                href="/community"
-                className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
-              >
-                커뮤니티
-              </Link>
-              <Link
-                href="/me"
-                className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
-              >
-                내 페이지
-              </Link>
-              {profile?.is_admin && (
+            <div className="flex items-center gap-3 sm:gap-5 text-sm shrink-0">
+              <div className="hidden md:flex items-center gap-5">
                 <Link
-                  href="/admin/reports"
-                  className="text-[color:var(--accent)] hover:opacity-80 transition-opacity"
+                  href="/"
+                  className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
                 >
-                  관리자
+                  둘러보기
                 </Link>
-              )}
+                <Link
+                  href="/about"
+                  className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+                >
+                  소개
+                </Link>
+                <Link
+                  href="/community"
+                  className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+                >
+                  커뮤니티
+                </Link>
+                <Link
+                  href="/makers"
+                  className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+                >
+                  메이커
+                </Link>
+                <Link
+                  href="/me"
+                  className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+                >
+                  내 페이지
+                </Link>
+                {profile?.is_admin && (
+                  <Link
+                    href="/admin/reports"
+                    className="text-[color:var(--accent)] hover:opacity-80 transition-opacity"
+                  >
+                    관리자
+                  </Link>
+                )}
+              </div>
               {user ? (
                 <div className="flex items-center gap-3">
                   <NotificationBell
@@ -187,6 +196,7 @@ export default async function RootLayout({
                   로그인
                 </Link>
               )}
+              <MobileNav isAdmin={Boolean(profile?.is_admin)} />
             </div>
           </nav>
         </header>

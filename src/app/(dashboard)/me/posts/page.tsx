@@ -70,6 +70,11 @@ export default async function MyPostsPage() {
                         📌 공지
                       </span>
                     )}
+                    {p.is_draft && (
+                      <span className="inline-flex items-center rounded-full bg-[color:var(--warning)]/10 border border-[color:var(--warning)]/30 px-2 py-0.5 text-[11px] text-[color:var(--warning)] font-medium tracking-wide">
+                        임시저장
+                      </span>
+                    )}
                     <span>{p.title}</span>
                   </h3>
                   <span className="text-xs text-[color:var(--muted)]">

@@ -40,6 +40,7 @@ const PostSchema = z.object({
   title: z.string().trim().min(1, "제목을 입력해주세요").max(120),
   body: z.string().trim().min(1, "내용을 입력해주세요").max(8000),
   category: PostCategorySchema,
+  intent: z.enum(["draft", "publish"]).optional().default("publish"),
 });
 
 const CommentSchema = z.object({
@@ -65,6 +66,7 @@ export async function createPostAction(
     title: (formData.get("title") as string | null) ?? "",
     body: (formData.get("body") as string | null) ?? "",
     category: (formData.get("category") as string | null) ?? "",
+    intent: (formData.get("intent") as string | null) ?? "publish",
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "잘못된 입력" };
@@ -87,15 +89,18 @@ export async function createPostAction(
     };
   }
 
+  const isDraft = parsed.data.intent === "draft";
   const created = await createPost(supabase, {
     authorId: user.id,
     title: parsed.data.title,
     body: parsed.data.body,
     category: parsed.data.category,
+    isDraft,
   });
   if (!created) return { ok: false, error: "등록에 실패했습니다." };
 
   revalidatePath("/community");
+  if (isDraft) redirect(`/community/${created.id}/edit`);
   redirect(`/community/${created.id}`);
 }
 
@@ -108,6 +113,7 @@ export async function updatePostAction(
     title: (formData.get("title") as string | null) ?? "",
     body: (formData.get("body") as string | null) ?? "",
     category: (formData.get("category") as string | null) ?? "",
+    intent: (formData.get("intent") as string | null) ?? "publish",
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "잘못된 입력" };
@@ -119,15 +125,18 @@ export async function updatePostAction(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const isDraft = parsed.data.intent === "draft";
   const ok = await updatePost(supabase, postId, user.id, {
     title: parsed.data.title,
     body: parsed.data.body,
     category: parsed.data.category,
+    isDraft,
   });
   if (!ok) return { ok: false, error: "저장에 실패했습니다." };
 
   revalidatePath("/community");
   revalidatePath(`/community/${postId}`);
+  if (isDraft) redirect(`/community/${postId}/edit`);
   redirect(`/community/${postId}`);
 }
 

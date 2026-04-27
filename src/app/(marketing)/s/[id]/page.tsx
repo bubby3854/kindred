@@ -10,7 +10,9 @@ import {
   countForService as countLikesForService,
   existsForUser as userLikedService,
 } from "@/lib/repositories/likes";
+import { existsForUser as userBookmarkedService } from "@/lib/repositories/bookmarks";
 import { LikeButton } from "@/components/like-button";
+import { BookmarkButton } from "@/components/bookmark-button";
 import { ServiceCardLink } from "@/components/service-card-link";
 import { ViewBeacon } from "@/components/view-beacon";
 
@@ -54,10 +56,13 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default async function ServiceDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }) {
   const { id } = await params;
+  const { preview } = await searchParams;
   const supabase = await createClient();
   const [service, userResult] = await Promise.all([
     getPublicDetail(supabase, id),
@@ -66,20 +71,25 @@ export default async function ServiceDetailPage({
   if (!service) notFound();
 
   const viewer = userResult.data.user;
-  const isOwner = Boolean(viewer && viewer.id === service.owner_id);
-  if (service.status !== "PUBLISHED" && !isOwner) notFound();
+  const isActuallyOwner = Boolean(viewer && viewer.id === service.owner_id);
+  const isPreviewMode = isActuallyOwner && preview === "visitor";
+  if (service.status !== "PUBLISHED" && !isActuallyOwner) notFound();
 
-  const [owner, likeCount, viewerLiked, sameMakerWorks] = await Promise.all([
-    findProfileById(supabase, service.owner_id),
-    countLikesForService(supabase, service.id),
-    viewer
-      ? userLikedService(supabase, service.id, viewer.id)
-      : Promise.resolve(false),
-    listPublishedByOwner(supabase, service.owner_id, {
-      limit: 4,
-      excludeId: service.id,
-    }),
-  ]);
+  const [owner, likeCount, viewerLiked, viewerBookmarked, sameMakerWorks] =
+    await Promise.all([
+      findProfileById(supabase, service.owner_id),
+      countLikesForService(supabase, service.id),
+      viewer
+        ? userLikedService(supabase, service.id, viewer.id)
+        : Promise.resolve(false),
+      viewer
+        ? userBookmarkedService(supabase, service.id, viewer.id)
+        : Promise.resolve(false),
+      listPublishedByOwner(supabase, service.owner_id, {
+        limit: 4,
+        excludeId: service.id,
+      }),
+    ]);
 
   const ownerName =
     owner?.display_name ?? owner?.username ?? "익명의 메이커";
@@ -90,24 +100,47 @@ export default async function ServiceDetailPage({
   return (
     <article className="mx-auto max-w-4xl px-6 pt-16 pb-24 flex flex-col gap-12">
       <ViewBeacon serviceId={service.id} />
-      {isOwner && service.status !== "PUBLISHED" && (
+      {isActuallyOwner && (
         <div className="rounded-lg border-l-2 border-[color:var(--warning)] bg-[color:var(--card)] px-5 py-4 text-sm flex items-baseline justify-between gap-3 flex-wrap">
           <p className="text-[color:var(--muted)] leading-relaxed">
-            <span className="font-medium text-[color:var(--foreground)]">
-              비공개 미리보기
-            </span>{" "}
-            · 현재 상태{" "}
-            <span className="font-medium text-[color:var(--foreground)]">
-              {STATUS_LABEL[service.status] ?? service.status}
-            </span>
-            . 본인에게만 보여요.
+            {isPreviewMode ? (
+              <>
+                <span className="font-medium text-[color:var(--foreground)]">
+                  방문자 시점 미리보기
+                </span>{" "}
+                · 본인 전용 UI가 가려진 상태예요.
+              </>
+            ) : (
+              <>
+                <span className="font-medium text-[color:var(--foreground)]">
+                  내 서비스
+                </span>{" "}
+                · 현재 상태{" "}
+                <span className="font-medium text-[color:var(--foreground)]">
+                  {STATUS_LABEL[service.status] ?? "공개"}
+                </span>
+                {service.status !== "PUBLISHED" && " (본인에게만 보여요)"}
+              </>
+            )}
           </p>
-          <Link
-            href={`/me/services/${service.id}`}
-            className="underline underline-offset-4 text-[color:var(--accent)] hover:opacity-80"
-          >
-            편집으로
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href={
+                isPreviewMode
+                  ? `/s/${service.id}`
+                  : `/s/${service.id}?preview=visitor`
+              }
+              className="underline underline-offset-4 text-[color:var(--muted)] hover:text-[color:var(--foreground)]"
+            >
+              {isPreviewMode ? "내 시점으로" : "방문자 시점으로 보기"}
+            </Link>
+            <Link
+              href={`/me/services/${service.id}`}
+              className="underline underline-offset-4 text-[color:var(--accent)] hover:opacity-80"
+            >
+              편집으로
+            </Link>
+          </div>
         </div>
       )}
       <header className="flex flex-col gap-5">
@@ -139,6 +172,11 @@ export default async function ServiceDetailPage({
             serviceId={service.id}
             initialCount={likeCount}
             initialLiked={viewerLiked}
+            isLoggedIn={Boolean(viewer)}
+          />
+          <BookmarkButton
+            serviceId={service.id}
+            initialBookmarked={viewerBookmarked}
             isLoggedIn={Boolean(viewer)}
           />
           <span className="text-sm text-[color:var(--muted)] font-mono">

@@ -89,13 +89,24 @@ export function PostForm({
         </p>
       )}
 
-      <div className="flex items-center gap-3 pt-2">
+      <div className="flex items-center gap-3 pt-2 flex-wrap">
         <button
           type="submit"
+          name="intent"
+          value="publish"
           disabled={pending}
           className="cursor-pointer inline-flex items-center rounded-full bg-[color:var(--foreground)] text-[color:var(--background)] px-5 py-2.5 text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-wait transition-opacity"
         >
           {pending ? "저장 중…" : submitLabel}
+        </button>
+        <button
+          type="submit"
+          name="intent"
+          value="draft"
+          disabled={pending}
+          className="cursor-pointer inline-flex items-center rounded-full border border-[color:var(--border)] px-5 py-2.5 text-sm font-medium hover:border-[color:var(--foreground)] disabled:opacity-50 transition-colors"
+        >
+          임시 저장 (나만 봄)
         </button>
       </div>
     </form>

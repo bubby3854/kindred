@@ -66,6 +66,8 @@ export default async function CommunityPostPage({
 
   // Hidden posts: visible only to author + admin (everyone else gets 404)
   if (post.is_hidden && !isAuthor && !isAdmin) notFound();
+  // Drafts: visible only to author
+  if (post.is_draft && !isAuthor) notFound();
 
   const [likeCount, viewerLiked] = await Promise.all([
     countLikesForPost(supabase, post.id),
@@ -93,6 +95,11 @@ export default async function CommunityPostPage({
           {post.is_pinned && (
             <span className="inline-flex items-center rounded-full bg-[color:var(--accent)]/10 border border-[color:var(--accent)]/30 px-2.5 py-0.5 text-xs text-[color:var(--accent)] font-medium">
               📌 공지
+            </span>
+          )}
+          {post.is_draft && (
+            <span className="inline-flex items-center rounded-full bg-[color:var(--warning)]/10 border border-[color:var(--warning)]/30 px-2.5 py-0.5 text-xs text-[color:var(--warning)] font-medium">
+              임시저장 (나만 봄)
             </span>
           )}
           <Link

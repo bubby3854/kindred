@@ -54,6 +54,12 @@ export default async function DashboardPage() {
           </p>
           <div className="flex items-center gap-4">
             <Link
+              href="/me/bookmarks"
+              className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors underline underline-offset-4"
+            >
+              북마크
+            </Link>
+            <Link
               href="/me/posts"
               className="text-sm text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors underline underline-offset-4"
             >

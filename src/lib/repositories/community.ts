@@ -16,6 +16,7 @@ export type CommunityPostListItem = {
   created_at: string;
   is_pinned: boolean;
   is_hidden: boolean;
+  is_draft: boolean;
   category: CommunityPostCategory;
   profiles: { display_name: string | null; avatar_url: string | null } | null;
 };
@@ -29,6 +30,7 @@ export type CommunityPostDetail = {
   updated_at: string;
   is_pinned: boolean;
   is_hidden: boolean;
+  is_draft: boolean;
   category: CommunityPostCategory;
   profiles: { display_name: string | null; avatar_url: string | null } | null;
 };
@@ -85,7 +87,7 @@ export async function listPostsByAuthor(
   const { data } = await supabase
     .from("community_posts")
     .select(
-      "id, author_id, title, created_at, is_pinned, is_hidden, category, profiles!community_posts_author_id_fkey(display_name, avatar_url)",
+      "id, author_id, title, created_at, is_pinned, is_hidden, is_draft, category, profiles!community_posts_author_id_fkey(display_name, avatar_url)",
     )
     .eq("author_id", authorId)
     .order("created_at", { ascending: false })
@@ -128,8 +130,9 @@ export async function listPosts(
   let q = supabase
     .from("community_posts")
     .select(
-      "id, author_id, title, created_at, is_pinned, is_hidden, category, profiles!community_posts_author_id_fkey(display_name, avatar_url)",
+      "id, author_id, title, created_at, is_pinned, is_hidden, is_draft, category, profiles!community_posts_author_id_fkey(display_name, avatar_url)",
     )
+    .eq("is_draft", false)
     .order("is_pinned", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -145,7 +148,7 @@ export async function getPost(
   const { data } = await supabase
     .from("community_posts")
     .select(
-      "id, author_id, title, body, created_at, updated_at, is_pinned, is_hidden, category, profiles!community_posts_author_id_fkey(display_name, avatar_url)",
+      "id, author_id, title, body, created_at, updated_at, is_pinned, is_hidden, is_draft, category, profiles!community_posts_author_id_fkey(display_name, avatar_url)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -171,6 +174,7 @@ export async function createPost(
     title: string;
     body: string;
     category: CommunityPostCategory;
+    isDraft?: boolean;
   },
 ): Promise<{ id: string } | null> {
   const { data, error } = await supabase
@@ -180,6 +184,7 @@ export async function createPost(
       title: input.title,
       body: input.body,
       category: input.category,
+      is_draft: input.isDraft ?? false,
     })
     .select("id")
     .single();
@@ -191,12 +196,18 @@ export async function updatePost(
   supabase: SupabaseClient,
   postId: string,
   authorId: string,
-  patch: { title?: string; body?: string; category?: CommunityPostCategory },
+  patch: {
+    title?: string;
+    body?: string;
+    category?: CommunityPostCategory;
+    isDraft?: boolean;
+  },
 ): Promise<boolean> {
   const dbPatch: Record<string, unknown> = {};
   if (patch.title !== undefined) dbPatch.title = patch.title;
   if (patch.body !== undefined) dbPatch.body = patch.body;
   if (patch.category !== undefined) dbPatch.category = patch.category;
+  if (patch.isDraft !== undefined) dbPatch.is_draft = patch.isDraft;
   if (Object.keys(dbPatch).length === 0) return true;
   const { error } = await supabase
     .from("community_posts")
