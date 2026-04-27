@@ -113,6 +113,12 @@ export default async function RootLayout({
                 둘러보기
               </Link>
               <Link
+                href="/about"
+                className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
+              >
+                소개
+              </Link>
+              <Link
                 href="/community"
                 className="text-[color:var(--muted)] hover:text-[color:var(--foreground)] transition-colors"
               >
