@@ -131,7 +131,7 @@ export default async function CommunityPage({
                   </span>
                   {p.is_hidden ? (
                     <span className="italic text-[color:var(--muted)] text-base">
-                      운영자에 의해 숨김처리된 게시글입니다.
+                      운영진에 의해 숨김 처리된 게시글입니다.
                     </span>
                   ) : (
                     <span>{p.title}</span>

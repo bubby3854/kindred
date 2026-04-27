@@ -219,7 +219,7 @@ export default async function CommunityPostPage({
 
       {post.is_hidden ? (
         <div className="rounded-md border border-dashed border-[color:var(--border)] px-4 py-6 text-sm italic text-[color:var(--muted)]">
-          관리자에 의해 숨김처리 되었습니다.
+          운영진에 의해 숨김 처리 되었습니다.
           {(isAuthor || isAdmin) && (
             <p className="mt-2 not-italic text-xs">
               ({isAdmin ? "관리자" : "작성자"} 권한으로 원문을 봅니다)
@@ -284,7 +284,7 @@ export default async function CommunityPostPage({
                   </div>
                   {c.is_hidden ? (
                     <p className="text-sm italic text-[color:var(--muted)] rounded-md border border-dashed border-[color:var(--border)] px-3 py-2">
-                      관리자에 의해 숨김처리 되었습니다.
+                      운영진에 의해 숨김 처리 되었습니다.
                     </p>
                   ) : (
                     <p className="text-sm leading-relaxed whitespace-pre-wrap">

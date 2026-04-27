@@ -106,7 +106,7 @@ export default async function MyPostsPage() {
                   </span>
                   {c.is_hidden ? (
                     <p className="text-sm italic text-[color:var(--muted)]">
-                      관리자에 의해 숨김처리 되었습니다.
+                      운영진에 의해 숨김 처리 되었습니다.
                     </p>
                   ) : (
                     <p className="text-sm whitespace-pre-wrap leading-relaxed line-clamp-3 group-hover:text-[color:var(--accent)] transition-colors">
