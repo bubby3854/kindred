@@ -7,9 +7,11 @@ export type UserSubscriptionSummary = {
   plan: Plan;
   status: SubscriptionStatus;
   current_period_end: string | null;
+  ls_customer_id: string | null;
+  ls_subscription_id: string | null;
 };
 
-export type SubscriptionByCustomerKey = {
+export type SubscriptionBySubId = {
   user_id: string;
   plan: Plan;
 };
@@ -20,48 +22,46 @@ export async function findByUserId(
 ): Promise<UserSubscriptionSummary | null> {
   const { data } = await supabase
     .from("subscriptions")
-    .select("plan, status, current_period_end")
+    .select("plan, status, current_period_end, ls_customer_id, ls_subscription_id")
     .eq("user_id", userId)
     .maybeSingle();
   return (data as UserSubscriptionSummary | null) ?? null;
 }
 
-export async function findByCustomerKey(
+export async function findBySubscriptionId(
   supabase: SupabaseClient,
-  customerKey: string,
-): Promise<SubscriptionByCustomerKey | null> {
+  lsSubscriptionId: string,
+): Promise<SubscriptionBySubId | null> {
   const { data } = await supabase
     .from("subscriptions")
     .select("user_id, plan")
-    .eq("toss_customer_key", customerKey)
+    .eq("ls_subscription_id", lsSubscriptionId)
     .maybeSingle();
-  return (data as SubscriptionByCustomerKey | null) ?? null;
+  return (data as SubscriptionBySubId | null) ?? null;
 }
 
-export async function upsertOnIssue(
+export async function upsertFromLemonSqueezy(
   supabase: SupabaseClient,
   params: {
     userId: string;
-    customerKey: string;
-    billingKey: string;
+    lsSubscriptionId: string;
+    lsCustomerId: string;
     plan: Plan;
-    periodEndIso: string;
+    status: SubscriptionStatus;
+    currentPeriodEndIso: string | null;
   },
 ): Promise<void> {
-  await supabase
-    .from("subscriptions")
-    .upsert(
-      {
-        user_id: params.userId,
-        toss_customer_key: params.customerKey,
-        toss_billing_key: params.billingKey,
-        plan: params.plan,
-        status: "ACTIVE",
-        current_period_end: params.periodEndIso,
-        next_charge_at: params.periodEndIso,
-      },
-      { onConflict: "user_id" },
-    );
+  await supabase.from("subscriptions").upsert(
+    {
+      user_id: params.userId,
+      ls_subscription_id: params.lsSubscriptionId,
+      ls_customer_id: params.lsCustomerId,
+      plan: params.plan,
+      status: params.status,
+      current_period_end: params.currentPeriodEndIso,
+    },
+    { onConflict: "user_id" },
+  );
 }
 
 export async function updateByUserId(
@@ -78,6 +78,10 @@ export async function downgradeToFree(
 ): Promise<void> {
   await supabase
     .from("subscriptions")
-    .update({ plan: "FREE", toss_billing_key: null, next_charge_at: null })
+    .update({
+      plan: "FREE",
+      status: "CANCELED",
+      ls_subscription_id: null,
+    })
     .eq("user_id", userId);
 }
