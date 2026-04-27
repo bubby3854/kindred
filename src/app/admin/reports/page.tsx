@@ -131,7 +131,7 @@ export default async function AdminReportsPage() {
                           className="w-16 rounded-md border border-[color:var(--border)] bg-[color:var(--background)] px-2 py-0.5 text-sm outline-none focus:border-[color:var(--foreground)]"
                         />
                         <span className="text-[color:var(--muted)]">
-                          일 댓글 금지
+                          일 작성 금지
                         </span>
                         <button
                           type="submit"
@@ -247,7 +247,7 @@ export default async function AdminReportsPage() {
                           className="w-16 rounded-md border border-[color:var(--border)] bg-[color:var(--background)] px-2 py-0.5 text-sm outline-none focus:border-[color:var(--foreground)]"
                         />
                         <span className="text-[color:var(--muted)]">
-                          일 댓글 금지
+                          일 작성 금지
                         </span>
                         <button
                           type="submit"

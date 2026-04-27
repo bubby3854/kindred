@@ -79,6 +79,14 @@ export async function createPostAction(
   const profile = await findProfileById(supabase, user.id);
   if (!profile?.display_name) redirect("/onboarding?next=/community/new");
 
+  if (profile.comment_ban_until && new Date(profile.comment_ban_until) > new Date()) {
+    const until = new Date(profile.comment_ban_until).toLocaleString("ko-KR");
+    return {
+      ok: false,
+      error: `${until}까지 작성이 제한됩니다.`,
+    };
+  }
+
   const created = await createPost(supabase, {
     authorId: user.id,
     title: parsed.data.title,

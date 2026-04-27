@@ -129,9 +129,13 @@ export default async function CommunityPage({
                   <span className="inline-flex items-center rounded-full border border-[color:var(--border)] px-2 py-0.5 text-[11px] text-[color:var(--muted)] tracking-wide">
                     {CATEGORY_LABEL[p.category]}
                   </span>
-                  <span>
-                    {p.is_hidden ? "(숨김 처리됨)" : p.title}
-                  </span>
+                  {p.is_hidden ? (
+                    <span className="italic text-[color:var(--muted)] text-base">
+                      운영자에 의해 숨김처리된 게시글입니다.
+                    </span>
+                  ) : (
+                    <span>{p.title}</span>
+                  )}
                 </h2>
                 <div className="flex items-center gap-3 text-xs text-[color:var(--muted)]">
                   <span>{p.profiles?.display_name ?? "익명의 메이커"}</span>

@@ -203,7 +203,7 @@ export default async function CommunityPostPage({
                     defaultValue={7}
                     className="w-14 rounded-md border border-[color:var(--border)] bg-[color:var(--card)] px-1.5 py-0.5 text-xs outline-none focus:border-[color:var(--foreground)]"
                   />
-                  <span className="text-xs">일 작성자 댓글 금지</span>
+                  <span className="text-xs">일 작성자 작성 금지</span>
                   <button
                     type="submit"
                     className="cursor-pointer rounded-full bg-[color:var(--foreground)] text-[color:var(--background)] px-2 py-0.5 text-xs hover:opacity-90"

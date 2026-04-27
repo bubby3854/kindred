@@ -41,7 +41,7 @@ export function AdminCommentTools({
           onClick={() => setBanOpen(true)}
           className="cursor-pointer text-[color:var(--accent)] hover:opacity-80"
         >
-          작성자 댓글 금지
+          작성자 작성 금지
         </button>
       ) : (
         <form action={banAction} className="inline-flex items-center gap-1">
