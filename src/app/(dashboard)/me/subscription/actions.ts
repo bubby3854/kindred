@@ -35,7 +35,7 @@ export async function startCheckoutAction(
 
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    "https://kindred.kr";
+    "https://www.kindred.kr";
 
   let result;
   try {

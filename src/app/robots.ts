@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://kindred.kr";
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://www.kindred.kr";
 
 export default function robots(): MetadataRoute.Robots {
   return {

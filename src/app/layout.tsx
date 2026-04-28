@@ -29,7 +29,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://kindred.kr";
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://www.kindred.kr";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

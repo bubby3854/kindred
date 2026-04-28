@@ -18,7 +18,7 @@ import { ViewBeacon } from "@/components/view-beacon";
 import { JsonLd } from "@/components/json-ld";
 
 const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://kindred.kr";
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://www.kindred.kr";
 
 export const revalidate = 60;
 
