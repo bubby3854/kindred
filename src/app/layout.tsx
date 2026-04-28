@@ -12,6 +12,8 @@ import { MobileNav } from "@/components/mobile-nav";
 import { SitePopupGate } from "@/components/site-popup-gate";
 import { listActive as listActivePopups } from "@/lib/repositories/site-popups";
 import { signOutAction } from "./auth-actions";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const inter = Inter({
@@ -248,6 +250,8 @@ export default async function RootLayout({
             </div>
           </div>
         </footer>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
