@@ -42,6 +42,7 @@ export async function generateMetadata({
   if (!post) return { title: "찾을 수 없음 · kindred" };
   return {
     title: `${post.title} · 커뮤니티 · kindred`,
+    alternates: { canonical: `/community/${id}` },
   };
 }
 

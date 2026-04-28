@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-export const metadata = { title: "이용약관 · kindred" };
+export const metadata = {
+  title: "이용약관 · kindred",
+  alternates: { canonical: "/terms" },
+};
 
 export default function TermsPage() {
   return (

@@ -9,6 +9,14 @@ import { loadCardLikeMeta, type CardLikeMeta } from "@/lib/use-cases/cards-enric
 import { recentCountsByServiceIds } from "@/lib/repositories/likes";
 import { ServiceCardLink } from "@/components/service-card-link";
 import { SortTabs, parseSortKey } from "@/components/sort-tabs";
+import { JsonLd } from "@/components/json-ld";
+
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://kindred.kr";
+
+export const metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default async function HomePage({
   searchParams,
@@ -76,6 +84,34 @@ export default async function HomePage({
 
   return (
     <div className="mx-auto max-w-6xl px-6 pt-16 pb-24 flex flex-col gap-20">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "kindred",
+          url: SITE_URL,
+          description:
+            "kindred는 직접 만든 웹앱이 머무를 자리를 만들어 드려요. 본인 소유가 인증된, 누구나 둘러볼 수 있는 한 페이지를요.",
+          inLanguage: "ko-KR",
+          potentialAction: {
+            "@type": "SearchAction",
+            target: {
+              "@type": "EntryPoint",
+              urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
+            },
+            "query-input": "required name=search_term_string",
+          },
+        }}
+      />
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "kindred",
+          url: SITE_URL,
+          logo: `${SITE_URL}/opengraph-image`,
+        }}
+      />
       <section className="flex flex-col gap-6 max-w-4xl">
         <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--muted)]">
           메이커를 위한 · 한 명당 한 페이지

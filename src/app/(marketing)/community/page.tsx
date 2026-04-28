@@ -8,7 +8,10 @@ import {
 import { countsByPostIds, likedByUserFromSet } from "@/lib/repositories/post-likes";
 import { SortTabs, parseSortKey } from "@/components/sort-tabs";
 
-export const metadata = { title: "커뮤니티 · kindred" };
+export const metadata = {
+  title: "커뮤니티 · kindred",
+  alternates: { canonical: "/community" },
+};
 export const dynamic = "force-dynamic";
 
 const CATEGORY_LABEL: Record<CommunityPostCategory, string> = Object.fromEntries(

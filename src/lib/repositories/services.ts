@@ -248,7 +248,7 @@ export async function markVerified(
   params: {
     nowIso: string;
     nextStatus: ServiceStatus;
-    publishedAtIso: string | null;
+    publishedAtIso?: string | null;
     thumbnailUrl?: string | null;
   },
 ): Promise<void> {
@@ -256,8 +256,9 @@ export async function markVerified(
     verified_at: params.nowIso,
     last_verified_at: params.nowIso,
     status: params.nextStatus,
-    published_at: params.publishedAtIso,
   };
+  if (params.publishedAtIso !== undefined)
+    update.published_at = params.publishedAtIso;
   if (params.thumbnailUrl !== undefined) update.thumbnail_url = params.thumbnailUrl;
   await supabase.from("services").update(update).eq("id", serviceId);
 }

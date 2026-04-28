@@ -17,6 +17,7 @@ export async function generateMetadata({
   return {
     title: `#${decoded} · kindred`,
     description: `${decoded} 태그가 달린 서비스를 모아 봤어요.`,
+    alternates: { canonical: `/t/${encodeURIComponent(decoded)}` },
   };
 }
 

@@ -48,15 +48,14 @@ export async function verifyServiceForOwner(
     return { ok: false, status: "failed", reason: result };
   }
 
-  const nextStatus: ServiceStatus =
-    service.status === "DRAFT" || service.status === "PENDING_VERIFY"
-      ? "PUBLISHED"
-      : service.status;
+  const isNewPublish =
+    service.status === "DRAFT" || service.status === "PENDING_VERIFY";
+  const nextStatus: ServiceStatus = isNewPublish ? "PUBLISHED" : service.status;
 
   await markVerified(supabase, service.id, {
     nowIso: now,
     nextStatus,
-    publishedAtIso: nextStatus === "PUBLISHED" ? now : null,
+    ...(isNewPublish ? { publishedAtIso: now } : {}),
     thumbnailUrl: result.thumbnailUrl,
   });
 

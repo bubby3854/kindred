@@ -4,6 +4,7 @@ export const metadata = {
   title: "kindred는 어떤 곳인가요 · kindred",
   description:
     "kindred는 직접 만든 웹앱을 소유권 인증과 함께 소개하는 큐레이티드 디렉토리입니다.",
+  alternates: { canonical: "/about" },
 };
 
 export default function AboutPage() {

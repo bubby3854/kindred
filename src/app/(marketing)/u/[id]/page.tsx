@@ -5,6 +5,10 @@ import { findById as findProfileById } from "@/lib/repositories/profiles";
 import { listPublishedByOwner } from "@/lib/repositories/services";
 import { loadCardLikeMeta } from "@/lib/use-cases/cards-enrichment";
 import { ServiceCardLink } from "@/components/service-card-link";
+import { JsonLd } from "@/components/json-ld";
+
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://kindred.kr";
 
 export const revalidate = 60;
 
@@ -21,6 +25,7 @@ export async function generateMetadata({
   return {
     title: `${profile.display_name} · kindred`,
     description,
+    alternates: { canonical: `/u/${id}` },
     openGraph: {
       type: "profile",
       title: `${profile.display_name} · kindred`,
@@ -55,6 +60,19 @@ export default async function MakerProfilePage({
 
   return (
     <div className="mx-auto max-w-6xl px-6 pt-16 pb-24 flex flex-col gap-16">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "ProfilePage",
+          mainEntity: {
+            "@type": "Person",
+            name: profile.display_name,
+            url: `${SITE_URL}/u/${id}`,
+            ...(profile.avatar_url ? { image: profile.avatar_url } : {}),
+            ...(profile.external_url ? { sameAs: [profile.external_url] } : {}),
+          },
+        }}
+      />
       <header className="flex flex-col gap-6">
         <Link
           href="/"

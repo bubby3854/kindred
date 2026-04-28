@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 export const metadata = {
   title: "메이커 · kindred",
   description: "kindred 에 가장 활발하게 작품을 올리는 메이커들.",
+  alternates: { canonical: "/makers" },
 };
 export const revalidate = 300;
 

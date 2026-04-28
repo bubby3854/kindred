@@ -15,6 +15,10 @@ import { LikeButton } from "@/components/like-button";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { ServiceCardLink } from "@/components/service-card-link";
 import { ViewBeacon } from "@/components/view-beacon";
+import { JsonLd } from "@/components/json-ld";
+
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://kindred.kr";
 
 export const revalidate = 60;
 
@@ -32,6 +36,7 @@ export async function generateMetadata({
   return {
     title: `${service.title} · kindred`,
     description,
+    alternates: { canonical: `/s/${id}` },
     openGraph: {
       type: "article",
       title: `${service.title} · kindred`,
@@ -99,6 +104,48 @@ export default async function ServiceDetailPage({
 
   return (
     <article className="mx-auto max-w-4xl px-6 pt-16 pb-24 flex flex-col gap-12">
+      {service.status === "PUBLISHED" && (
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: service.title,
+            description: service.tagline ?? service.description ?? undefined,
+            url: `${SITE_URL}/s/${service.id}`,
+            inLanguage: "ko-KR",
+            applicationCategory: "WebApplication",
+            operatingSystem: "Web",
+            ...(service.thumbnail_url ? { image: service.thumbnail_url } : {}),
+            ...(service.categories
+              ? { applicationSubCategory: service.categories.name }
+              : {}),
+            ...(owner?.display_name
+              ? {
+                  author: {
+                    "@type": "Person",
+                    name: owner.display_name,
+                    url: `${SITE_URL}/u/${service.owner_id}`,
+                  },
+                }
+              : {}),
+            offers: {
+              "@type": "Offer",
+              price: "0",
+              priceCurrency: "KRW",
+              url: service.url,
+            },
+            ...(likeCount > 0
+              ? {
+                  interactionStatistic: {
+                    "@type": "InteractionCounter",
+                    interactionType: { "@type": "LikeAction" },
+                    userInteractionCount: likeCount,
+                  },
+                }
+              : {}),
+          }}
+        />
+      )}
       <ViewBeacon serviceId={service.id} />
       {isActuallyOwner && (
         <div className="rounded-lg border-l-2 border-[color:var(--warning)] bg-[color:var(--card)] px-5 py-4 text-sm flex items-baseline justify-between gap-3 flex-wrap">

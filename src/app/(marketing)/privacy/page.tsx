@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-export const metadata = { title: "개인정보처리방침 · kindred" };
+export const metadata = {
+  title: "개인정보처리방침 · kindred",
+  alternates: { canonical: "/privacy" },
+};
 
 export default function PrivacyPage() {
   return (
