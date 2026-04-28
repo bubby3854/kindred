@@ -14,7 +14,7 @@ const cspDirectives = [
   // Verified user thumbnails / OAuth provider avatars come from arbitrary
   // HTTPS origins — broad allow is required.
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://cdn.jsdelivr.net",
   "worker-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
