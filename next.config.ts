@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "node:path";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -13,7 +14,8 @@ const cspDirectives = [
   // Verified user thumbnails / OAuth provider avatars come from arbitrary
   // HTTPS origins — broad allow is required.
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
+  "worker-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self' https://*.lemonsqueezy.com",
@@ -50,4 +52,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "orangecatsoft",
+  project: "javascript-nextjs",
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  disableLogger: true,
+  automaticVercelMonitors: false,
+});
