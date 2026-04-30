@@ -56,6 +56,19 @@ export async function updateDisplayName(
   return !error;
 }
 
+export async function updateAvatarIfChanged(
+  supabase: SupabaseClient,
+  id: string,
+  avatarUrl: string | null,
+): Promise<void> {
+  if (!avatarUrl) return;
+  await supabase
+    .from("profiles")
+    .update({ avatar_url: avatarUrl })
+    .eq("id", id)
+    .neq("avatar_url", avatarUrl);
+}
+
 export async function updateProfile(
   supabase: SupabaseClient,
   id: string,

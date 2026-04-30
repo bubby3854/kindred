@@ -1,6 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { findById as findProfileById } from "@/lib/repositories/profiles";
+import {
+  findById as findProfileById,
+  updateAvatarIfChanged,
+} from "@/lib/repositories/profiles";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 // OAuth code-exchange endpoint. Supabase redirects back here after the user
@@ -32,6 +35,10 @@ export async function GET(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
     if (user) {
+      const latestAvatar =
+        (user.user_metadata?.avatar_url as string | undefined) ?? null;
+      await updateAvatarIfChanged(supabase, user.id, latestAvatar);
+
       const profile = await findProfileById(supabase, user.id);
       if (!profile?.display_name) {
         const onboardingUrl = new URL("/onboarding", url);
