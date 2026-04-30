@@ -68,8 +68,7 @@ export default function AboutPage() {
       <section className="flex flex-col gap-4 rounded-xl border border-[color:var(--border)] bg-[color:var(--card)] p-8">
         <h2 className="font-serif text-2xl">시작하기</h2>
         <p className="text-[color:var(--muted)] leading-relaxed">
-          무료 플랜으로 사이트 1개를 등록할 수 있어요. Pro·Business 플랜으로
-          올리면 슬롯이 늘어납니다.
+          한 계정에 사이트 3개까지 등록할 수 있어요. 모두 무료입니다.
         </p>
         <div className="flex flex-wrap gap-3 pt-2">
           <Link
