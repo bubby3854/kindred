@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { verifyServiceForOwner } from "@/lib/use-cases/verify-service";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const BodySchema = z.object({
   serviceId: z.string().uuid(),
@@ -19,6 +20,14 @@ export async function POST(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const rl = await checkRateLimit("verify", user.id);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "rate_limited", reason: rl.reason },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } },
+    );
+  }
 
   const result = await verifyServiceForOwner(supabase, {
     serviceId: parsed.data.serviceId,

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { findById as findProfileById } from "@/lib/repositories/profiles";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // OAuth code-exchange endpoint. Supabase redirects back here after the user
 // completes a social sign-in.
@@ -10,6 +11,17 @@ export async function GET(request: NextRequest) {
   const next = url.searchParams.get("next") || "/me";
 
   if (code) {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
+    const rl = await checkRateLimit("authCallback", ip);
+    if (!rl.ok) {
+      return NextResponse.redirect(
+        new URL(`/login?error=${encodeURIComponent(rl.reason)}`, url),
+      );
+    }
+
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/lib/rate-limit";
 import {
   findById as findProfileById,
   setCommentBanUntil,
@@ -89,6 +90,9 @@ export async function createPostAction(
     };
   }
 
+  const rl = await checkRateLimit("post", user.id);
+  if (!rl.ok) return { ok: false, error: rl.reason };
+
   const isDraft = parsed.data.intent === "draft";
   const created = await createPost(supabase, {
     authorId: user.id,
@@ -168,6 +172,9 @@ export async function createCommentAction(
       error: `${until}까지 댓글 작성이 제한됩니다.`,
     };
   }
+
+  const rl = await checkRateLimit("comment", user.id);
+  if (!rl.ok) return { ok: false, error: rl.reason };
 
   const created = await createComment(supabase, {
     postId,
