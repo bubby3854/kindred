@@ -1,5 +1,5 @@
 export const PLAN_SLOTS = {
-  FREE: 1,
+  FREE: 3,
   PRO: 5,
   BUSINESS: 20,
 } as const;

@@ -61,7 +61,7 @@ export default async function EditServicePage({
           <div className="flex flex-col gap-2">
             <h2 className="font-serif text-2xl">숨겨진 서비스</h2>
             <p className="text-sm text-[color:var(--muted)] leading-relaxed">
-              구독 취소 또는 슬롯 초과로 이 서비스가 비공개로 전환됐어요.
+              슬롯 초과로 이 서비스가 비공개로 전환됐어요.
               다시 공개하려면 사용 중인 슬롯에 여유가 있어야 합니다.
             </p>
           </div>

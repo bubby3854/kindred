@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { slotsForPlan, type Plan } from "@/lib/plans";
+import { type Plan } from "@/lib/plans";
 import { listByOwner, type ServiceStatus } from "@/lib/repositories/services";
 import { findByUserId as findSubscriptionByUserId } from "@/lib/repositories/subscriptions";
 import { findById as findProfileById } from "@/lib/repositories/profiles";
@@ -107,28 +107,6 @@ export default async function DashboardPage() {
             style={{ width: `${usedRatio * 100}%` }}
           />
         </div>
-        {(() => {
-          const nextPlan: Plan | null =
-            plan === "FREE" ? "PRO" : plan === "PRO" ? "BUSINESS" : null;
-          // FREE: 항상 권유. PRO: 슬롯 가득 찼을 때만 권유. BUSINESS: 권유 없음.
-          const showNudge =
-            nextPlan !== null && (plan === "FREE" || activeCount >= slots);
-          if (!showNudge) return null;
-          return (
-            <div className="flex items-center justify-between text-sm pt-1 flex-wrap gap-2">
-              <span className="text-[color:var(--muted)]">
-                더 많이 등록하시려면 {PLAN_LABEL[nextPlan!]}(
-                {slotsForPlan(nextPlan!)}개 슬롯)로 업그레이드하세요.
-              </span>
-              <Link
-                href="/me/subscription"
-                className="cursor-pointer underline underline-offset-4 text-[color:var(--accent)] hover:opacity-80"
-              >
-                플랜 보기
-              </Link>
-            </div>
-          );
-        })()}
       </section>
 
       {hiddenCount > 0 && (
@@ -137,15 +115,8 @@ export default async function DashboardPage() {
             숨겨진 서비스 {hiddenCount}개
           </p>
           <p className="text-[color:var(--muted)] leading-relaxed">
-            구독 취소 또는 슬롯 초과로 비공개 상태예요. 슬롯에 여유가 있으면
-            개별 편집에서 다시 공개할 수 있고,{" "}
-            <Link
-              href="/me/subscription"
-              className="underline underline-offset-4 text-[color:var(--accent)] hover:opacity-80"
-            >
-              플랜을 올리면
-            </Link>{" "}
-            자동으로 복원돼요.
+            슬롯 초과로 비공개 상태예요. 다른 서비스를 정리하거나 슬롯에 여유가
+            생기면 개별 편집에서 다시 공개할 수 있어요.
           </p>
         </div>
       )}
@@ -161,12 +132,9 @@ export default async function DashboardPage() {
               서비스 추가
             </Link>
           ) : (
-            <Link
-              href="/me/subscription"
-              className="cursor-pointer inline-flex items-center rounded-full border border-[color:var(--foreground)] text-sm font-medium px-4 py-2 hover:bg-[color:var(--foreground)] hover:text-[color:var(--background)] transition-colors"
-            >
-              슬롯 추가하기
-            </Link>
+            <span className="text-sm text-[color:var(--muted)]">
+              슬롯 모두 사용 중
+            </span>
           )}
         </div>
 
@@ -237,7 +205,7 @@ function StatusBadge({ status }: { status: ServiceStatus }) {
       text: "text-[color:var(--success)]",
     },
     HIDDEN: {
-      label: "숨김 (구독)",
+      label: "숨김",
       dot: "bg-[color:var(--warning)]",
       text: "text-[color:var(--warning)]",
     },

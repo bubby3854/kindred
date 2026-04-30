@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 import { restoreServiceAction, type RestoreState } from "../actions";
 
@@ -10,7 +9,7 @@ const REASON_LABEL: Record<
 > = {
   not_found: "서비스를 찾을 수 없어요.",
   wrong_status: "이미 다른 상태예요. 새로고침해주세요.",
-  slot_full: "구독 슬롯이 가득 찼어요. 플랜을 변경한 뒤 다시 시도해주세요.",
+  slot_full: "슬롯이 가득 찼어요. 다른 서비스를 정리한 뒤 다시 시도해주세요.",
 };
 
 export function RestoreButton({ serviceId }: { serviceId: string }) {
@@ -38,17 +37,6 @@ export function RestoreButton({ serviceId }: { serviceId: string }) {
           {REASON_LABEL[state.reason]}
           {state.detail && (
             <span className="text-[color:var(--muted)]"> · {state.detail}</span>
-          )}
-          {state.reason === "slot_full" && (
-            <>
-              {" "}
-              <Link
-                href="/me/subscription"
-                className="underline underline-offset-4 hover:opacity-80"
-              >
-                구독 페이지로
-              </Link>
-            </>
           )}
         </p>
       )}

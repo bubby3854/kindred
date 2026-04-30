@@ -65,7 +65,7 @@ export async function createServiceAction(
   if (!slot.hasRoom) {
     return {
       ok: false,
-      error: `${slot.plan} 플랜의 슬롯(${slot.slots}개)을 모두 사용 중이에요. 구독 페이지에서 플랜을 변경해주세요.`,
+      error: `슬롯 ${slot.slots}개를 모두 사용 중이에요. 다른 서비스를 정리한 뒤 다시 시도해주세요.`,
     };
   }
 

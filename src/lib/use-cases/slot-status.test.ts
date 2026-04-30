@@ -15,18 +15,20 @@ function svc(status: OwnerService["status"]): OwnerService {
 describe("computeSlotStatus", () => {
   it("FREE plan: 0 services → has room", () => {
     const r = computeSlotStatus([], "FREE");
-    expect(r).toEqual({ plan: "FREE", slots: 1, activeCount: 0, hasRoom: true });
+    expect(r).toEqual({ plan: "FREE", slots: 3, activeCount: 0, hasRoom: true });
   });
 
-  it("FREE plan: 1 PUBLISHED → full", () => {
-    const r = computeSlotStatus([svc("PUBLISHED")], "FREE");
-    expect(r.activeCount).toBe(1);
+  it("FREE plan: 3 PUBLISHED → full", () => {
+    const services = Array.from({ length: 3 }, () => svc("PUBLISHED"));
+    const r = computeSlotStatus(services, "FREE");
+    expect(r.activeCount).toBe(3);
     expect(r.hasRoom).toBe(false);
   });
 
   it("counts PENDING_VERIFY as active", () => {
-    const r = computeSlotStatus([svc("PENDING_VERIFY")], "FREE");
-    expect(r.activeCount).toBe(1);
+    const services = Array.from({ length: 3 }, () => svc("PENDING_VERIFY"));
+    const r = computeSlotStatus(services, "FREE");
+    expect(r.activeCount).toBe(3);
     expect(r.hasRoom).toBe(false);
   });
 

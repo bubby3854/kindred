@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 import { verifyServiceAction, type VerifyState } from "../actions";
 
@@ -10,7 +9,7 @@ const REASON_LABEL: Record<
 > = {
   not_found: "서비스를 찾을 수 없어요.",
   forbidden: "권한이 없어요.",
-  slot_full: "구독 슬롯이 가득 찼어요. 플랜을 변경한 뒤 다시 시도해주세요.",
+  slot_full: "슬롯이 가득 찼어요. 다른 서비스를 정리한 뒤 다시 시도해주세요.",
   fetch_failed: "사이트에 접근할 수 없었어요. URL이 올바른지 확인해주세요.",
   meta_missing: "사이트 <head>에서 인증 메타 태그를 찾지 못했어요.",
   token_mismatch: "메타 태그의 값이 일치하지 않아요.",
@@ -41,17 +40,6 @@ export function VerifyButton({ serviceId }: { serviceId: string }) {
           {REASON_LABEL[state.reason]}
           {state.detail && (
             <span className="text-[color:var(--muted)]"> · {state.detail}</span>
-          )}
-          {state.reason === "slot_full" && (
-            <>
-              {" "}
-              <Link
-                href="/me/subscription"
-                className="underline underline-offset-4 hover:opacity-80"
-              >
-                구독 페이지로
-              </Link>
-            </>
           )}
         </p>
       )}

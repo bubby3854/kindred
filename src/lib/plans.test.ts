@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { slotsForPlan, PLAN_PRICE_KRW } from "./plans";
 
 describe("slotsForPlan", () => {
-  it("returns 1 for FREE", () => {
-    expect(slotsForPlan("FREE")).toBe(1);
+  it("returns 3 for FREE", () => {
+    expect(slotsForPlan("FREE")).toBe(3);
   });
   it("returns 5 for PRO", () => {
     expect(slotsForPlan("PRO")).toBe(5);
