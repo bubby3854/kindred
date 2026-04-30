@@ -91,7 +91,7 @@ export default async function HomePage({
           name: "kindred",
           url: SITE_URL,
           description:
-            "kindred는 직접 만든 웹앱이 머무를 자리를 만들어 드려요. 본인 소유가 인증된, 누구나 둘러볼 수 있는 한 페이지를요.",
+            "본인이 만든 웹앱을 인증하고, 한곳에 모아 보여주세요.",
           inLanguage: "ko-KR",
           potentialAction: {
             "@type": "SearchAction",
@@ -114,15 +114,14 @@ export default async function HomePage({
       />
       <section className="flex flex-col gap-6 max-w-4xl">
         <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--muted)]">
-          메이커를 위한 · 한 명당 한 페이지
+          메이커를 위한 · 검증된 쇼케이스
         </p>
         <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl leading-[1.05] tracking-tight">
           내가 만든 웹앱,{" "}
           <span className="text-[color:var(--accent)]">제대로</span> 보여주기.
         </h1>
         <p className="text-lg sm:text-xl text-[color:var(--muted)] max-w-2xl leading-relaxed">
-          kindred는 직접 만든 웹앱이 머무를 자리를 만들어 드려요. 본인 소유가
-          인증된, 누구나 둘러볼 수 있는 한 페이지를요.
+          본인이 만든 웹앱을 인증하고, 한곳에 모아 보여주세요.
         </p>
         <div className="flex flex-wrap gap-3 pt-2">
           {isLoggedIn ? (
@@ -130,7 +129,7 @@ export default async function HomePage({
               href="/me"
               className="cursor-pointer inline-flex items-center gap-2 rounded-full bg-[color:var(--foreground)] text-[color:var(--background)] px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
             >
-              내 페이지로
+              내 쇼케이스 만들기
               <span aria-hidden="true">→</span>
             </Link>
           ) : (
@@ -138,7 +137,7 @@ export default async function HomePage({
               href="/login"
               className="cursor-pointer inline-flex items-center gap-2 rounded-full bg-[color:var(--foreground)] text-[color:var(--background)] px-5 py-2.5 text-sm font-medium hover:opacity-90 transition-opacity"
             >
-              내 페이지 만들기
+              내 쇼케이스 만들기
               <span aria-hidden="true">→</span>
             </Link>
           )}
@@ -146,7 +145,7 @@ export default async function HomePage({
             href="#latest"
             className="cursor-pointer inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] px-5 py-2.5 text-sm font-medium hover:border-[color:var(--foreground)] transition-colors"
           >
-            라이브 둘러보기
+            메이커들 둘러보기
             <span aria-hidden="true">↓</span>
           </a>
         </div>
